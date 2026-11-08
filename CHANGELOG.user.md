@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [1.12.2] - 2026-11-08
+
+### Fixed
+- **Android app fixes** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
+  - Signing in with Google now brings you straight back into the app with your real teams loaded, instead of showing a "page could not be found" screen.
+  - The Sub Scheduler now opens properly and shows your suggested rolling substitutions instead of the recovery screen.
+  - The pitch now shows every player in their position (not just the keeper), and your substitutes appear on the bench — matching exactly what you see on the web app.
+
 ## [1.12.1] - 2026-11-08
 
 ### Added

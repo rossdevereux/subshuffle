@@ -1,6 +1,6 @@
 {
   "name": "@subshuffle/shared",
-  "version": "1.12.1",
+  "version": "1.12.2",
   "license": "PolyForm-Noncommercial-1.0.0",
   "private": true,
   "type": "module",
@@ -10,4 +10,3 @@
     ".": "./src/index.ts"
   }
 }
-

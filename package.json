@@ -1,6 +1,6 @@
 {
   "name": "subshuffle",
-  "version": "1.12.1",
+  "version": "1.12.2",
   "license": "PolyForm-Noncommercial-1.0.0",
   "private": true,
   "description": "Decoupled, zero-idle-cost full-stack TypeScript project with React, Cloud Run, and Firebase Hosting",
