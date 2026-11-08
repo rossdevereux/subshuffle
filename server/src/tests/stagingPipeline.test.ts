@@ -19,7 +19,7 @@ describe('Multi-Site Staging & Dual-Branch CI/CD Pipeline Suite (Issue #33 & #43
     assert.strictEqual(parsed.projects?.default, 'team-organiser-prod');
     const hostingTargets = parsed.targets?.['team-organiser-prod']?.hosting;
     assert.ok(hostingTargets, 'Expected hosting targets for team-organiser-prod');
-    assert.ok(hostingTargets.live.includes('subshuffle-live'));
+    assert.deepEqual(hostingTargets.live, ['team-organiser-prod']);
     assert.deepEqual(hostingTargets.beta, ['subshuffle-beta']);
     assert.deepEqual(hostingTargets.admin, ['subshuffle-admin']);
     assert.deepEqual(hostingTargets['admin-beta'], ['subshuffle-admin-beta']);
