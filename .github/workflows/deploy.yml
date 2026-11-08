@@ -59,17 +59,9 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: Configure Docker Auth & Ensure Artifact Registry Repository
+      - name: Configure Docker Auth for Google Artifact Registry
         run: |
           gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
-          gcloud artifacts repositories describe "${{ env.ARTIFACT_REGISTRY_REPO }}" \
-            --location="${{ env.GCP_REGION }}" \
-            --project="${{ env.GCP_PROJECT_ID }}" >/dev/null 2>&1 || \
-          gcloud artifacts repositories create "${{ env.ARTIFACT_REGISTRY_REPO }}" \
-            --repository-format=docker \
-            --location="${{ env.GCP_REGION }}" \
-            --project="${{ env.GCP_PROJECT_ID }}" \
-            --description="SubShuffle Docker container registry"
 
       - name: Build and Push Server Docker Image
         run: |
