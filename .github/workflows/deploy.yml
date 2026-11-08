@@ -21,6 +21,7 @@ jobs:
       env_name: ${{ steps.step1.outputs.env_name }}
       cloud_run_service: ${{ steps.step1.outputs.cloud_run_service }}
       hosting_target: ${{ steps.step1.outputs.hosting_target }}
+      admin_hosting_target: ${{ steps.step1.outputs.admin_hosting_target }}
       max_instances: ${{ steps.step1.outputs.max_instances }}
     steps:
       - id: step1
@@ -29,11 +30,13 @@ jobs:
             echo "env_name=production" >> "$GITHUB_OUTPUT"
             echo "cloud_run_service=team-organiser-api" >> "$GITHUB_OUTPUT"
             echo "hosting_target=live" >> "$GITHUB_OUTPUT"
+            echo "admin_hosting_target=admin" >> "$GITHUB_OUTPUT"
             echo "max_instances=10" >> "$GITHUB_OUTPUT"
           else
             echo "env_name=beta" >> "$GITHUB_OUTPUT"
             echo "cloud_run_service=backend-api-beta" >> "$GITHUB_OUTPUT"
             echo "hosting_target=beta" >> "$GITHUB_OUTPUT"
+            echo "admin_hosting_target=admin-beta" >> "$GITHUB_OUTPUT"
             echo "max_instances=2" >> "$GITHUB_OUTPUT"
           fi
 
@@ -91,7 +94,7 @@ jobs:
             --max-instances ${{ needs.set-env.outputs.max_instances }} \
             --memory 512Mi \
             --cpu 1 \
-            --update-env-vars NODE_ENV=production,JIRA_HOST=subshuffle.atlassian.net \
+            --update-env-vars NODE_ENV=production,JIRA_HOST=subshuffle.atlassian.net,SUPER_ADMIN_EMAIL=rossdevereux@gmail.com \
             --update-secrets "$SECRETS_SPEC"
 
   # Deploy Frontend to Firebase Hosting
@@ -132,4 +135,44 @@ jobs:
           firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
           projectId: ${{ env.GCP_PROJECT_ID }}
           target: ${{ needs.set-env.outputs.hosting_target }}
+          channelId: live
+
+  # Deploy Standalone Firewalled Platform Admin App to Firebase Hosting
+  deploy-admin:
+    name: Build & Deploy Platform Admin (${{ needs.set-env.outputs.admin_hosting_target }})
+    runs-on: ubuntu-latest
+    needs: [set-env, deploy-backend]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: admin/package-lock.json
+
+      - name: Install Admin Dependencies
+        run: npm ci
+        working-directory: ./admin
+
+      - name: Build Admin SPA
+        run: npm run build
+        working-directory: ./admin
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+
+      - name: Deploy to Firebase Hosting Admin Target
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
+          projectId: ${{ env.GCP_PROJECT_ID }}
+          target: ${{ needs.set-env.outputs.admin_hosting_target }}
           channelId: live

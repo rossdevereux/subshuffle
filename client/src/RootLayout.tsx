@@ -110,7 +110,7 @@ function DashboardShell() {
     if (location.pathname === '/') {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab');
-      if (tab && ['lineup', 'matrix', 'squad', 'fixtures', 'stats', 'teams', 'admin', 'dashboard', 'team-dashboard'].includes(tab)) {
+      if (tab && ['lineup', 'matrix', 'squad', 'fixtures', 'stats', 'teams', 'dashboard', 'team-dashboard'].includes(tab)) {
         const targetPath = tab === 'dashboard' ? '/team-dashboard' : `/${tab}`;
         (navigate as any)({
           to: targetPath,
@@ -349,7 +349,7 @@ function DashboardShell() {
         )}
 
         {/* Hero Match Context Bar */}
-        {activeFixture && activeTab !== 'admin' ? (
+        {activeFixture ? (
           <div className="relative overflow-hidden rounded-3xl border border-[var(--surface-border)] bg-[var(--surface-card)] p-4 sm:p-6 shadow-xl transition-all duration-200">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1">

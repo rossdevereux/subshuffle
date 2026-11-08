@@ -61,8 +61,8 @@ interface MatchdayContextType {
   isCoach: boolean;
   isViewer: boolean;
   refreshUserClaims: () => Promise<void>;
-  activeTab: 'lineup' | 'matrix' | 'squad' | 'fixtures' | 'stats' | 'teams' | 'admin' | 'dashboard';
-  setActiveTab: (tab: 'lineup' | 'matrix' | 'squad' | 'fixtures' | 'stats' | 'teams' | 'admin' | 'dashboard') => void;
+  activeTab: 'lineup' | 'matrix' | 'squad' | 'fixtures' | 'stats' | 'teams' | 'dashboard';
+  setActiveTab: (tab: 'lineup' | 'matrix' | 'squad' | 'fixtures' | 'stats' | 'teams' | 'dashboard') => void;
   setActivePeriod: (period: number) => void;
   setActiveTeamId: (id: string) => void;
   setActiveFixtureId: (id: string) => void;
@@ -162,15 +162,14 @@ const getInitialUrlState = () => {
     const teamId = params.get('team') || '';
     const fixtureId = params.get('fixture') || '';
     const rawTab = params.get('tab');
-    const validTabs = ['lineup', 'matrix', 'squad', 'fixtures', 'stats', 'teams', 'admin'];
+    const validTabs = ['lineup', 'matrix', 'squad', 'fixtures', 'stats', 'teams'];
     const tab = (rawTab && validTabs.includes(rawTab) ? rawTab : 'lineup') as
       | 'lineup'
       | 'matrix'
       | 'squad'
       | 'fixtures'
       | 'stats'
-      | 'teams'
-      | 'admin';
+      | 'teams';
     return { teamId, fixtureId, tab };
   } catch (_) {
     return { teamId: '', fixtureId: '', tab: 'lineup' as const };
@@ -298,20 +297,20 @@ export const MatchdayProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Derive activeTab directly from TanStack Router URL pathname
   const activeTab = useMemo<
-    'lineup' | 'matrix' | 'squad' | 'fixtures' | 'stats' | 'teams' | 'admin' | 'dashboard'
+    'lineup' | 'matrix' | 'squad' | 'fixtures' | 'stats' | 'teams' | 'dashboard'
   >(() => {
     const segment = location.pathname.replace(/^\//, '').split('/')[0] || '';
     if (segment === 'team-dashboard' || segment === 'dashboard') {
       return 'dashboard';
     }
-    if (['lineup', 'matrix', 'squad', 'fixtures', 'stats', 'teams', 'admin'].includes(segment)) {
+    if (['lineup', 'matrix', 'squad', 'fixtures', 'stats', 'teams'].includes(segment)) {
       return segment as any;
     }
     return 'lineup';
   }, [location.pathname]);
 
   const setActiveTab = useCallback(
-    (tab: 'lineup' | 'matrix' | 'squad' | 'fixtures' | 'stats' | 'teams' | 'admin' | 'dashboard') => {
+    (tab: 'lineup' | 'matrix' | 'squad' | 'fixtures' | 'stats' | 'teams' | 'dashboard') => {
       navigate({
         to: tab === 'dashboard' ? '/team-dashboard' : `/${tab}`,
         search: (prev: any) => prev,

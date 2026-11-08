@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-11-08
+
+### Changed
+- **Streamlined Coach Navigation & Dedicated Platform Admin Console** ([#42](https://github.com/rossdevereux/team-organiser/issues/42)):
+  - Removed the legacy **Admin** tab from the main coach navigation bar so team creation and assistant coach sharing live cleanly in the **Teams** tab, while site-wide platform administration is handled in a separate, firewalled Platform Admin application.
+
 ## [1.9.0] - 2026-11-08
 
 ### Changed

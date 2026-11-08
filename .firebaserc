@@ -10,6 +10,12 @@
         ],
         "beta": [
           "subshuffle-beta"
+        ],
+        "admin": [
+          "subshuffle-admin"
+        ],
+        "admin-beta": [
+          "subshuffle-admin-beta"
         ]
       }
     }

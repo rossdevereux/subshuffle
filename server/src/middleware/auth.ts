@@ -15,12 +15,60 @@ export interface AuthenticatedRequest extends Request {
     uid: string;
     email?: string;
     role?: 'owner' | 'coach' | 'viewer';
+    superAdmin?: boolean;
     subscriptionStatus?: SubscriptionStatus;
     subscriptionTier?: SubscriptionTier;
     name?: string;
     picture?: string;
   };
   rawBody?: Buffer;
+}
+
+/**
+ * Evaluates whether the authenticated user matches the single firewalled Platform Super-Admin
+ * configured via SUPER_ADMIN_UID or SUPER_ADMIN_EMAIL / INITIAL_ADMIN_EMAIL.
+ * Regular team owners (`role === 'owner'`) are NOT granted super-admin access unless their
+ * UID or email explicitly matches the platform owner configuration.
+ */
+export function isSuperAdminUser(user?: AuthenticatedRequest['user']): boolean {
+  if (!user) return false;
+  if (user.superAdmin === true) return true;
+
+  const allowedUids = (process.env.SUPER_ADMIN_UID || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const allowedEmails = (process.env.SUPER_ADMIN_EMAIL || process.env.INITIAL_ADMIN_EMAIL || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (allowedUids.length > 0 && allowedUids.includes(user.uid)) {
+    return true;
+  }
+
+  if (user.email && allowedEmails.length > 0 && allowedEmails.includes(user.email.toLowerCase())) {
+    return true;
+  }
+
+  // In non-production dev/test environments when no env vars are explicitly set,
+  // allow only the dedicated super-admin test identities.
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    allowedUids.length === 0 &&
+    allowedEmails.length === 0
+  ) {
+    if (user.uid === 'super-admin-uid') return true;
+    if (
+      user.email &&
+      ['admin@therovers.local', 'superadmin@subshuffle.local'].includes(user.email.toLowerCase())
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -111,28 +159,25 @@ export const requireAuth = async (
       uid: decoded.uid,
       email: decoded.email,
       role: (decoded.role as 'owner' | 'coach' | 'viewer') || 'viewer',
+      superAdmin: decoded.superAdmin === true,
       subscriptionStatus: (decoded.subscriptionStatus as SubscriptionStatus) || (req.headers['x-subscription-status'] as SubscriptionStatus) || undefined,
       subscriptionTier: (decoded.subscriptionTier as SubscriptionTier) || (req.headers['x-subscription-tier'] as SubscriptionTier) || undefined,
       name: decoded.name,
       picture: decoded.picture,
     };
 
-    // Auto-bootstrap initial admin owner claim if email matches INITIAL_ADMIN_EMAIL
-    const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
-    if (req.user.email && initialAdminEmail && req.user.email.toLowerCase() === initialAdminEmail) {
-      if (req.user.role !== 'owner') {
-        if (!bootstrappedOwnerUids.has(req.user.uid)) {
-          try {
-            await getAuth().setCustomUserClaims(req.user.uid, { role: 'owner' });
-            bootstrappedOwnerUids.add(req.user.uid);
-            console.log(`👑 Auto-bootstrapped owner claim for initial admin: ${req.user.email}`);
-          } catch (e: any) {
-            console.warn(`Initial admin claim set warning: ${e?.message}`);
-          }
+    // Auto-bootstrap initial admin owner claim if email matches SUPER_ADMIN_EMAIL or INITIAL_ADMIN_EMAIL
+    if (isSuperAdminUser(req.user)) {
+      req.user.superAdmin = true;
+      req.user.role = 'owner';
+      if (!bootstrappedOwnerUids.has(req.user.uid)) {
+        try {
+          await getAuth().setCustomUserClaims(req.user.uid, { role: 'owner', superAdmin: true });
+          bootstrappedOwnerUids.add(req.user.uid);
+          console.log(`👑 Auto-bootstrapped superAdmin claim for platform owner: ${req.user.email || req.user.uid}`);
+        } catch (e: any) {
+          console.warn(`Super admin claim set warning: ${e?.message}`);
         }
-        req.user.role = 'owner';
-      } else {
-        bootstrappedOwnerUids.add(req.user.uid);
       }
     }
 
@@ -153,6 +198,25 @@ export const requireRole = (allowedRoles: ('owner' | 'coach' | 'viewer')[]) => {
     }
     next();
   };
+};
+
+/**
+ * 3. Single-Owner Platform Super-Admin Firewall Guard
+ * Strictly restricts `/api/admin/*` endpoints to the single configured platform owner
+ * (`SUPER_ADMIN_UID` / `SUPER_ADMIN_EMAIL` / `INITIAL_ADMIN_EMAIL`), rejecting regular
+ * team owners (`role === 'owner'`), coaches, and viewers with HTTP 403.
+ */
+export const requireSuperAdmin = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): any => {
+  if (!req.user || !isSuperAdminUser(req.user)) {
+    return res.status(403).json({
+      error: 'Forbidden: Restricted to Platform Super-Administrator',
+    });
+  }
+  next();
 };
 
 /**

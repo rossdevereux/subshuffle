@@ -14,7 +14,6 @@ import {
   Share2,
   Zap,
   WifiOff,
-  Crown,
   BookOpen,
   Trophy,
 } from 'lucide-react';
@@ -533,20 +532,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Shield className="w-3.5 h-3.5 text-indigo-400" />
                 <span>{t('nav.teams')}</span>
-              </Link>
-              <Link
-                role="button"
-                to="/admin"
-                search={(prev: any) => prev}
-                className={`min-h-[44px] px-3.5 sm:px-4 flex items-center rounded-xl font-semibold text-xs transition cursor-pointer whitespace-nowrap shrink-0 gap-1.5 ${
-                  activeTab === 'admin'
-                    ? 'bg-amber-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                }`}
-                title="Club Administration & RBAC Portal"
-              >
-                <Crown className="w-3.5 h-3.5 text-amber-400" />
-                <span>{t('nav.admin')}</span>
               </Link>
               <Link
                 role="button"
