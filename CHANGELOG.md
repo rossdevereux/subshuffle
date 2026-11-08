@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Mobile & Server CI Build Pipeline Alignment** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
-  - Aligned [`mobile/package.json`](mobile/package.json) `react` (`18.3.1`) and `@types/react` (`~18.3.12`) peer dependencies with `react-native@0.76.7` (Expo SDK 52) so `npm install` and `npm run typecheck` succeed cleanly in [`.github/workflows/mobile-eas.yml`](.github/workflows/mobile-eas.yml).
+  - Aligned [`mobile/package.json`](mobile/package.json) `react` (`18.3.1`), `@types/react` (`~18.3.12`), and Expo Metro bundler dependencies (`expo-asset`, `expo-constants`, `expo-font`, `expo-splash-screen`, `expo-system-ui`, `query-string`) with `react-native@0.76.9` (Expo SDK 52) and added [`mobile/metro.config.js`](mobile/metro.config.js) so `:app:createBundleReleaseJsAndAssets` compiles the Hermes release bundle cleanly in [`.github/workflows/mobile-eas.yml`](.github/workflows/mobile-eas.yml).
   - Updated [`server/tsconfig.json`](server/tsconfig.json) to exclude `src/tests/**/*` from the production `dist/` Docker compilation step so `docker build ./server` succeeds cleanly in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
 
 ## [1.12.0] - 2026-11-08
