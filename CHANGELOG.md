@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-11-08
+
+### Added
+- **React Native (Expo) Mobile App (`mobile/`) & Shared Domain Package (`packages/shared`)** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
+  - Created [`packages/shared`](packages/shared/src/index.ts) (`@subshuffle/shared`) containing cross-platform TypeScript domain models (`types.ts`), built-in 5v5/7v7/9v9/11v11 tactical formation coordinates (`formations.ts`), `getFixturePotmIds`, and `formatWhatsAppMatchSummary`.
+  - Introduced the React Native (Expo Router) mobile application in [`mobile/`](mobile/app/_layout.tsx) with native bottom tabs (`Pitch & Bench`, `Matrix`, `Squad`, `Fixtures`, `Stats`), an interactive 2D SVG pitch (`react-native-svg`) with haptic tap-to-swap player rotations (`expo-haptics`), WhatsApp sharing (`expo-linking`), PDF match sheet export (`expo-print`), High-Contrast Sunlight Mode, and pocket-safe background substitution & period-end local notifications (`expo-notifications`) in [`matchNotificationService.ts`](mobile/src/services/matchNotificationService.ts).
+  - Configured [`mobile/app.json`](mobile/app.json) (`com.subshuffle.app`) and [`mobile/eas.json`](mobile/eas.json) (`development`, `beta`, and `production` EAS Build profiles) and added unit tests in [`sharedPackage.test.ts`](server/src/tests/sharedPackage.test.ts).
+
 ## [1.11.0] - 2026-11-08
 
 ### Added

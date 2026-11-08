@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "SubShuffle",
+    "slug": "subshuffle",
+    "version": "1.12.0",
+    "orientation": "portrait",
+    "scheme": "subshuffle",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#020617"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.subshuffle.app",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio", "remote-notification"]
+      }
+    },
+    "android": {
+      "package": "com.subshuffle.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#020617"
+      },
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "SCHEDULE_EXACT_ALARM"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "color": "#10b981"
+        }
+      ]
+    ]
+  }
+}
+

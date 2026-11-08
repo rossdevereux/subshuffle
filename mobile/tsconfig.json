@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@subshuffle/shared": ["../packages/shared/src/index.ts"]
+    }
+  },
+  "include": ["app", "src", "../packages/shared/src"]
+}
+
