@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.12.1] - 2026-11-08
 
+### Added
+- **Automated Android APK Build & GitHub Release Artifact Attachment** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
+  - Enhanced [`.github/workflows/mobile-eas.yml`](.github/workflows/mobile-eas.yml) to automatically prebuild (`npx expo prebuild --platform android --no-install`) and compile a standalone Android `.apk` (`./gradlew assembleRelease`) on `ubuntu-latest`, uploading `subshuffle-v<version>.apk` (or `subshuffle-v<version>-beta.apk` on `beta`) both as a GitHub Actions run artifact and directly onto GitHub Releases (`gh release upload` / `gh release create`).
+  - Linked [`mobile/app.json`](mobile/app.json) (`projectId: "eafdca34-5782-4c42-aa95-2c87f5768e21"`, `owner: "rossdevereuxs-team"`, `runtimeVersion`, and `updates.url`) and added `expo-updates` (`~0.27.4`) to [`mobile/package.json`](mobile/package.json).
+
 ### Fixed
 - **Mobile & Server CI Build Pipeline Alignment** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
   - Aligned [`mobile/package.json`](mobile/package.json) `react` (`18.3.1`) and `@types/react` (`~18.3.12`) peer dependencies with `react-native@0.76.7` (Expo SDK 52) so `npm install` and `npm run typecheck` succeed cleanly in [`.github/workflows/mobile-eas.yml`](.github/workflows/mobile-eas.yml).

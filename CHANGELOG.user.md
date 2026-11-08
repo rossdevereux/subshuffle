@@ -4,9 +4,9 @@
 
 ## [1.12.1] - 2026-11-08
 
-### Fixed
-- **Automated Mobile & Cloud Build Pipeline**:
-  - Added automated Expo Application Services (EAS) cloud build, Over-The-Air (OTA) update, and App Store / Google Play submission pipelines alongside Docker build optimizations.
+### Added
+- **Downloadable Android APK on GitHub Releases**:
+  - Every release and beta build now automatically compiles a standalone Android `.apk` (`subshuffle-v<version>.apk`) and attaches it directly to the GitHub Releases page and GitHub Actions artifacts for instant, zero-cost Android installation alongside Expo Over-The-Air (OTA) updates.
 
 ## [1.12.0] - 2026-11-08
 

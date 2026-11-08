@@ -1,4 +1,4 @@
-name: Mobile App Pipeline (EAS Build, OTA Update & Store Submit)
+name: Mobile App Pipeline (APK Release Artifact, EAS Build & OTA Update)
 
 on:
   push:
@@ -9,19 +9,22 @@ on:
       - 'mobile/**'
       - 'packages/shared/**'
       - '.github/workflows/mobile-eas.yml'
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       action_type:
         description: 'Mobile pipeline action to run'
         required: true
-        default: 'build'
+        default: 'apk-release'
         type: choice
         options:
+          - apk-release
           - ota-update
-          - build
-          - build-and-submit
+          - eas-cloud-build
+          - eas-build-and-submit
       platform:
-        description: 'Target mobile platform'
+        description: 'Target mobile platform (for EAS Cloud Build)'
         required: true
         default: 'all'
         type: choice
@@ -30,7 +33,7 @@ on:
           - android
           - ios
       profile:
-        description: 'EAS build profile (beta = internal APK/TestFlight, production = App Store/Play Store)'
+        description: 'Build profile (beta = staging API, production = live API)'
         required: true
         default: 'beta'
         type: choice
@@ -38,9 +41,12 @@ on:
           - beta
           - production
 
+permissions:
+  contents: write
+
 jobs:
-  mobile-eas:
-    name: Expo EAS Mobile Pipeline
+  mobile-build:
+    name: Build Android APK & Release Artifacts
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -51,17 +57,14 @@ jobs:
         with:
           node-version: 22
 
-      - name: Check EXPO_TOKEN Secret
-        id: check_token
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "has_token=false" >> "$GITHUB_OUTPUT"
-            echo "ℹ️ EXPO_TOKEN secret is not configured yet. Skipping EAS cloud step (typecheck still runs)."
-          else
-            echo "has_token=true" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Setup Java 17 for Android Gradle Build
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Install Mobile Dependencies
         working-directory: ./mobile
@@ -70,6 +73,83 @@ jobs:
       - name: Typecheck Mobile App & Shared Package
         working-directory: ./mobile
         run: npm run typecheck
+
+      - name: Determine App Version & API Environment
+        id: meta
+        working-directory: ./mobile
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "${{ github.ref }}" == "refs/heads/main" ] || [ "${{ github.event_name }}" == "release" ] || [ "${{ inputs.profile }}" == "production" ]; then
+            API_URL="https://subshuffle.com"
+            APK_NAME="subshuffle-v${VERSION}.apk"
+            RELEASE_TAG="v${VERSION}"
+            IS_PRERELEASE="false"
+          else
+            API_URL="https://subshuffle-beta.web.app"
+            APK_NAME="subshuffle-v${VERSION}-beta.apk"
+            RELEASE_TAG="v${VERSION}-beta"
+            IS_PRERELEASE="true"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "api_url=$API_URL" >> "$GITHUB_OUTPUT"
+          echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "is_prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
+
+      - name: Prebuild Native Android Project & Compile Release APK
+        working-directory: ./mobile
+        env:
+          EXPO_PUBLIC_API_URL: ${{ steps.meta.outputs.api_url }}
+        run: |
+          npx expo prebuild --platform android --no-install
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk "../${{ steps.meta.outputs.apk_name }}"
+
+      - name: Upload APK to GitHub Actions Run Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.apk_name }}
+          path: ./mobile/${{ steps.meta.outputs.apk_name }}
+          retention-days: 90
+
+      - name: Attach APK to GitHub Release Artifacts
+        working-directory: ./mobile
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.meta.outputs.release_tag }}"
+          APK="${{ steps.meta.outputs.apk_name }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Uploading $APK to existing GitHub Release $TAG..."
+            gh release upload "$TAG" "$APK" --clobber
+          elif [ "${{ steps.meta.outputs.is_prerelease }}" == "true" ]; then
+            echo "Creating beta pre-release $TAG and attaching $APK..."
+            gh release create "$TAG" "$APK" \
+              --title "$TAG (Beta Android APK)" \
+              --notes "Automated Android APK build (\`$APK\`) from \`beta\` branch pointing to \`${{ steps.meta.outputs.api_url }}\`." \
+              --prerelease \
+              --target beta
+          elif gh release view "v${{ steps.meta.outputs.version }}" >/dev/null 2>&1; then
+            gh release upload "v${{ steps.meta.outputs.version }}" "$APK" --clobber
+          else
+            echo "Creating GitHub Release $TAG with $APK..."
+            gh release create "$TAG" "$APK" \
+              --title "$TAG" \
+              --notes "SubShuffle Release $TAG with Android APK (\`$APK\`)."
+          fi
+
+      - name: Check EXPO_TOKEN Secret
+        id: check_token
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup Expo & EAS CLI
         if: steps.check_token.outputs.has_token == 'true'
@@ -82,20 +162,23 @@ jobs:
         if: steps.check_token.outputs.has_token == 'true' && (github.event_name == 'push' || inputs.action_type == 'ota-update')
         working-directory: ./mobile
         run: |
-          if [ "${{ github.ref }}" == "refs/heads/main" ] || [ "${{ inputs.profile }}" == "production" ]; then
+          if [ "${{ steps.meta.outputs.is_prerelease }}" == "false" ]; then
             CHANNEL="production"
           else
             CHANNEL="beta"
           fi
-          eas update --branch "$CHANNEL" --message "${{ github.event.head_commit.message || 'Manual OTA update' }}" --non-interactive
+          if grep -q '"projectId"' app.json; then
+            eas update --branch "$CHANNEL" --message "${{ github.event.head_commit.message || 'OTA update' }}" --non-interactive
+          else
+            echo "ℹ️ Skipping EAS OTA update until 'npx eas-cli init' adds extra.eas.projectId to mobile/app.json."
+          fi
 
-      - name: Trigger EAS Cloud Build (iOS IPA / Android APK or AAB)
-        if: steps.check_token.outputs.has_token == 'true' && github.event_name == 'workflow_dispatch' && (inputs.action_type == 'build' || inputs.action_type == 'build-and-submit')
+      - name: Trigger EAS Cloud Build (iOS IPA / Android AAB)
+        if: steps.check_token.outputs.has_token == 'true' && github.event_name == 'workflow_dispatch' && (inputs.action_type == 'eas-cloud-build' || inputs.action_type == 'eas-build-and-submit')
         working-directory: ./mobile
         run: |
           SUBMIT_FLAG=""
-          if [ "${{ inputs.action_type }}" == "build-and-submit" ]; then
+          if [ "${{ inputs.action_type }}" == "eas-build-and-submit" ]; then
             SUBMIT_FLAG="--auto-submit"
           fi
           eas build --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" $SUBMIT_FLAG --non-interactive --no-wait
-

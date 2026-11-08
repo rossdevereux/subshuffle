@@ -3,6 +3,12 @@
     "name": "SubShuffle",
     "slug": "subshuffle",
     "version": "1.12.1",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/eafdca34-5782-4c42-aa95-2c87f5768e21"
+    },
     "orientation": "portrait",
     "scheme": "subshuffle",
     "userInterfaceStyle": "dark",
@@ -14,7 +20,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.subshuffle.app",
       "infoPlist": {
-        "UIBackgroundModes": ["audio", "remote-notification"]
+        "UIBackgroundModes": [
+          "audio",
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -36,7 +45,15 @@
           "color": "#10b981"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "eafdca34-5782-4c42-aa95-2c87f5768e21"
+      }
+    },
+    "owner": "rossdevereuxs-team"
   }
 }
-
