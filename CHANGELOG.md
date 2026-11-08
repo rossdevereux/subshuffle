@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-11-08
+
+### Added
+- **Standalone Single-Owner Firewalled Platform Admin Application (`admin/`)** ([#42](https://github.com/rossdevereux/team-organiser/issues/42)):
+  - Created an isolated Vite + React + TypeScript Platform Admin Console in [`admin/`](admin/src/App.tsx) (`npm run dev:admin`, `npm run build:admin`) for site-wide user management, **Free for Life (`lifetime`)** subscription grants, team ownership inspection, and full JSON database backup/restore.
+  - Added [`requireSuperAdmin`](server/src/middleware/auth.ts) middleware and `GET /api/admin/me` in [`server/src/routes/admin.ts`](server/src/routes/admin.ts) to firewall all `/api/admin/*` endpoints strictly to the configured platform owner (`SUPER_ADMIN_UID` / `SUPER_ADMIN_EMAIL`), returning `403 Forbidden` to regular team owners and coaches.
+  - Provisioned dedicated Firebase Hosting multi-sites (`subshuffle-admin` and `subshuffle-admin-beta`) in [`.firebaserc`](.firebaserc), [`firebase.json`](firebase.json), and [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+
+### Removed
+- **In-App Club Admin Menu & Route (`/admin`) from Coach Web Client** ([#42](https://github.com/rossdevereux/team-organiser/issues/42)):
+  - Removed the legacy in-app **Admin** navigation link and `/admin` route from [`Navbar.tsx`](client/src/components/Navbar.tsx), [`router.tsx`](client/src/router.tsx), [`RootLayout.tsx`](client/src/RootLayout.tsx), and [`MatchdayContext.tsx`](client/src/context/MatchdayContext.tsx), and deleted `AdminPage.tsx`, `AdminPortal.tsx`, `AdminRoute.tsx`, and `client/src/components/admin/*`.
+
 ## [1.9.0] - 2026-11-08
 
 ### Changed

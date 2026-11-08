@@ -523,7 +523,7 @@ describe('Stripe Billing & Free Trial Monetisation Suite (Issue #6)', () => {
       assert.equal(sub.status, 'expired');
     });
 
-    it('PUT /api/admin/users/:uid/subscription allows Club Owner to grant Free for Life status', async () => {
+    it('PUT /api/admin/users/:uid/subscription allows only the firewalled Platform Super-Admin (and blocks regular team owners & coaches)', async () => {
       const targetCoachUid = `grant_lifetime_${Date.now()}`;
       await storage.upsertAdminUser({
         uid: targetCoachUid,
@@ -532,13 +532,45 @@ describe('Stripe Billing & Free Trial Monetisation Suite (Issue #6)', () => {
         role: 'coach',
       });
 
-      // Attempt to grant lifetime as owner
-      const grantRes = await fetch(`${baseUrl}/admin/users/${targetCoachUid}/subscription`, {
+      // 1. Verify regular Team Owner (role: 'owner', non-super-admin email/uid) is blocked by requireSuperAdmin firewall
+      const regularOwnerForbiddenRes = await fetch(`${baseUrl}/admin/users/${targetCoachUid}/subscription`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'x-user-id': 'club_owner_uid',
           'x-user-email': 'owner@grassroots.local',
+          'x-user-role': 'owner',
+          Authorization: 'Bearer mock-dev-token',
+        },
+        body: JSON.stringify({
+          status: 'lifetime',
+        }),
+      });
+      assert.equal(regularOwnerForbiddenRes.status, 403);
+
+      // 2. Verify regular Coach is blocked
+      const coachForbiddenRes = await fetch(`${baseUrl}/admin/users/${targetCoachUid}/subscription`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': 'regular_coach_uid',
+          'x-user-email': 'coach@grassroots.local',
+          'x-user-role': 'coach',
+          Authorization: 'Bearer mock-dev-token',
+        },
+        body: JSON.stringify({
+          status: 'lifetime',
+        }),
+      });
+      assert.equal(coachForbiddenRes.status, 403);
+
+      // 3. Verify firewalled Platform Super-Admin can grant Free for Life status and access /api/admin/me
+      const grantRes = await fetch(`${baseUrl}/admin/users/${targetCoachUid}/subscription`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': 'super-admin-uid',
+          'x-user-email': process.env.SUPER_ADMIN_EMAIL || process.env.INITIAL_ADMIN_EMAIL || 'admin@therovers.local',
           'x-user-role': 'owner',
           Authorization: 'Bearer mock-dev-token',
         },
@@ -557,21 +589,19 @@ describe('Stripe Billing & Free Trial Monetisation Suite (Issue #6)', () => {
       assert.equal(fetchedSub.status, 'lifetime');
       assert.equal(isSubscriptionActive(fetchedSub), true);
 
-      // Verify non-owner cannot grant subscriptions
-      const forbiddenRes = await fetch(`${baseUrl}/admin/users/${targetCoachUid}/subscription`, {
-        method: 'PUT',
+      // Verify GET /api/admin/me returns platform KPIs for Super-Admin and 403 for regular owner
+      const meRes = await fetch(`${baseUrl}/admin/me`, {
         headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': 'regular_coach_uid',
-          'x-user-email': 'coach@grassroots.local',
-          'x-user-role': 'coach',
+          'x-user-id': 'super-admin-uid',
+          'x-user-email': process.env.SUPER_ADMIN_EMAIL || process.env.INITIAL_ADMIN_EMAIL || 'admin@therovers.local',
+          'x-user-role': 'owner',
           Authorization: 'Bearer mock-dev-token',
         },
-        body: JSON.stringify({
-          status: 'lifetime',
-        }),
       });
-      assert.equal(forbiddenRes.status, 403);
+      assert.equal(meRes.status, 200);
+      const meData = await meRes.json();
+      assert.equal(meData.admin.superAdmin, true);
+      assert.equal(typeof meData.kpis.totalUsers, 'number');
 
       // Clean up
       await storage.deleteAdminUser(targetCoachUid);

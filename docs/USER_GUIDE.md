@@ -316,10 +316,10 @@ Share match highlights with parents:
 ## 7. Administration, Roles & Subscriptions
 
 ### Coach & Member Roles
-SubShuffle uses zero-latency role-based security:
-- **Club Owner:** Full system governance. Manage users, assign token roles, export database snapshots, and manage billing.
-- **Team Coach:** Full matchday access. Create fixtures, manage squads, run auto-rotations, and track live matches.
+SubShuffle uses zero-latency role-based security and team-level sharing:
+- **Team Owner / Coach:** Full matchday access for your teams. Create teams, share teams with assistant coaches in the **Teams** tab, manage squads and fixtures, run auto-rotations, and track live matches.
 - **Viewer / Parent:** Read-only access to view lineups, match results, and pitch sheets without editing permissions.
+- **Platform Super-Admin (Isolated Console):** Site-wide account administration, subscription entitlements, and system-wide database snapshots are managed exclusively via the standalone, single-owner firewalled Platform Admin application (`admin/`), keeping the coach matchday interface clean and focused on grassroots teams.
 
 ### Free Trial & Grassroots Pricing
 - **30-Day Free Trial:** Every newly registered coach gets an automatic 30-day free trial of SubShuffle Pro with zero credit card required.
@@ -330,12 +330,10 @@ SubShuffle uses zero-latency role-based security:
 - **No Hostage Data Policy:** If your subscription ends, your data is never locked. You retain permanent free access to view historical lineups, view minutes stats, and export team sheets.
 
 ### Complimentary Free for Life Access
-Club Owners can grant **Free for Life** status to individual volunteer coaches directly in the **Admin Portal** under the **Users** tab. Coaches with Free for Life access enjoy perpetual active access without any recurring subscription fees.
+The Platform Admin can grant **Free for Life** (`lifetime`) status to individual volunteer coaches via the isolated Platform Admin Console. Coaches with Free for Life access enjoy perpetual active access without any recurring subscription fees.
 
 ### Backups & Disaster Recovery
-In the **Admin Portal** under **Backups & Disaster Recovery**:
-- Click **Export JSON Backup** to download an encrypted snapshot of all your teams, players, fixtures, and settings.
-- Restore backups seamlessly onto any device.
+Platform-wide encrypted JSON database snapshots and disaster recovery restores are managed via the isolated Platform Admin Console (`admin/`).
 
 ### In-App Help & Feedback (Support Desk)
 Need help on matchday, want to suggest a grassroots feature, or spotted a bug on the touchline? You can raise a support ticket directly inside SubShuffle without leaving your pitch view:
