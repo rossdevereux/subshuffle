@@ -139,11 +139,12 @@ export const TeamDashboardView: React.FC = () => {
         <div className="flex items-center gap-2.5 flex-wrap">
           {/* Season Filter Dropdown */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs">
-            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
             <select
+              aria-label="Filter dashboard by season"
               value={seasonFilter}
               onChange={(e) => setSeasonFilter(e.target.value)}
-              className="bg-transparent text-white font-semibold focus:outline-none cursor-pointer"
+              className="bg-slate-950 text-white font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 rounded cursor-pointer"
             >
               <option value="ALL" className="bg-slate-900 text-white">
                 All Seasons
@@ -162,7 +163,7 @@ export const TeamDashboardView: React.FC = () => {
             className="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer flex items-center gap-1.5"
             title="View Fair Play playing time equity stats"
           >
-            <Clock className="w-3.5 h-3.5 text-emerald-400" />
+            <Clock className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
             <span>Fair Play Minutes</span>
           </Link>
 
@@ -174,7 +175,7 @@ export const TeamDashboardView: React.FC = () => {
               className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-sky-500 hover:from-emerald-600 hover:to-sky-600 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition cursor-pointer"
               title="Print official season awards sheet and presentation day summary"
             >
-              <Printer className="w-3.5 h-3.5" />
+              <Printer className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Print Awards Sheet</span>
             </button>
           )}
@@ -182,12 +183,13 @@ export const TeamDashboardView: React.FC = () => {
           {/* Refresh Button */}
           <button
             type="button"
+            aria-label="Refresh season statistics"
             onClick={loadSummary}
             disabled={loading}
             className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition cursor-pointer disabled:opacity-50"
             title="Refresh season statistics"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-sky-400' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin motion-reduce:animate-none text-sky-400' : ''}`} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -195,8 +197,8 @@ export const TeamDashboardView: React.FC = () => {
       {/* Loading & Error States */}
       {loading && !summary && (
         <div className="p-12 rounded-2xl bg-slate-900/40 border border-slate-800 text-center space-y-3">
-          <div className="w-8 h-8 rounded-full border-2 border-amber-500 border-t-transparent animate-spin mx-auto" />
-          <p className="text-xs text-slate-400 font-medium">Aggregating season dashboard stats...</p>
+          <div className="w-8 h-8 rounded-full border-2 border-amber-500 border-t-transparent animate-spin motion-reduce:animate-none mx-auto" />
+          <p className="text-xs text-slate-400 font-medium">Aggregating season dashboard stats…</p>
         </div>
       )}
 

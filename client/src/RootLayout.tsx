@@ -202,10 +202,10 @@ function DashboardShell() {
   if (loading && !activeTeam) {
     return (
       <div className="min-h-screen bg-[var(--surface-base,#020617)] flex flex-col items-center justify-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center animate-spin shadow-lg shadow-sky-500/20">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center animate-spin motion-reduce:animate-none shadow-lg shadow-sky-500/20">
           <RefreshCw className="w-6 h-6 text-white" />
         </div>
-        <p className="text-sm font-semibold text-slate-300">Loading SubShuffle Workspace...</p>
+        <p className="text-sm font-semibold text-slate-300">Loading SubShuffle Workspace…</p>
       </div>
     );
   }
@@ -223,6 +223,12 @@ function DashboardShell() {
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--surface-base)] text-[var(--text-main)] flex flex-col selection:bg-[var(--kit-primary)] selection:text-white transition-colors duration-200">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:rounded-xl focus:bg-sky-600 focus:text-white focus:font-bold focus:text-xs focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
       {/* High-Contrast Print Mode Sticky Banner */}
       {context === 'print' && (
         <div className="sticky top-0 z-50 bg-amber-400 text-slate-950 px-4 py-2 text-xs font-bold flex items-center justify-between shadow-md print:hidden border-b border-amber-500">
@@ -260,7 +266,7 @@ function DashboardShell() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-28 lg:pb-6 print:hidden">
+      <main id="main-content" className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-28 lg:pb-6 print:hidden">
         {/* Offline Pitch Mode Alert */}
         {isOffline && (
           <div className="px-4 py-2.5 rounded-2xl bg-amber-950/70 border border-amber-500/40 text-xs flex items-center justify-between text-amber-200 shadow-lg">
@@ -388,11 +394,13 @@ function DashboardShell() {
                     </span>
                   )}
                   <button
+                    type="button"
+                    aria-label="Edit fixture logistics and details"
                     onClick={() => setEditActiveFixtureOpen(true)}
-                    className="p-1.5 rounded-xl bg-[var(--surface-base)] hover:bg-indigo-600/20 text-slate-400 hover:text-indigo-300 border border-[var(--surface-border)] transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+                    className="p-1.5 rounded-xl bg-[var(--surface-base)] hover:bg-indigo-600/20 text-slate-400 hover:text-indigo-300 border border-[var(--surface-border)] transition cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-sky-500"
                     title="Edit fixture logistics & details"
                   >
-                    <Edit3 className="w-3.5 h-3.5" />
+                    <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </div>
               </div>

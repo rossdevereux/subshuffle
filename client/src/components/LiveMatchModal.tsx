@@ -663,7 +663,10 @@ export const LiveMatchModal: React.FC<LiveMatchModalProps> = ({ isOpen, onClose 
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 py-6 sm:py-8 backdrop-blur-md overflow-y-auto animate-fade-in ${
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="live-match-modal-title"
+      className={`fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 py-6 sm:py-8 backdrop-blur-md overflow-y-auto overscroll-contain animate-fade-in ${
         highContrast ? 'bg-black text-white' : 'bg-slate-950/90 text-white'
       }`}
     >
@@ -679,7 +682,7 @@ export const LiveMatchModal: React.FC<LiveMatchModalProps> = ({ isOpen, onClose 
           <div className="flex items-center gap-3 min-w-0">
             <span className="flex h-3 w-3 relative shrink-0">
               {isRunning && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="animate-ping motion-reduce:animate-none absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               )}
               <span
                 className={`relative inline-flex rounded-full h-3 w-3 ${
@@ -689,7 +692,7 @@ export const LiveMatchModal: React.FC<LiveMatchModalProps> = ({ isOpen, onClose 
             </span>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
+                <h2 id="live-match-modal-title" className="text-base sm:text-lg font-black tracking-tight text-white">
                   ⚡ Sideline Live Match & Sub Buzzer
                 </h2>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-bold border border-emerald-500/30 font-mono">
@@ -769,7 +772,7 @@ export const LiveMatchModal: React.FC<LiveMatchModalProps> = ({ isOpen, onClose 
                 <span className="text-sm font-bold text-white truncate max-w-[120px] sm:max-w-[180px]">
                   {isOurTeamHome ? ourTeamName : activeFixture.opponent}
                 </span>
-                <span className="text-2xl font-mono font-black text-amber-400 bg-slate-950 px-3 py-0.5 rounded-xl border border-slate-800">
+                <span className="text-2xl font-mono tabular-nums font-black text-amber-400 bg-slate-950 px-3 py-0.5 rounded-xl border border-slate-800">
                   {homeScore} - {awayScore}
                 </span>
                 <span className="text-sm font-bold text-white truncate max-w-[120px] sm:max-w-[180px]">
@@ -885,7 +888,7 @@ export const LiveMatchModal: React.FC<LiveMatchModalProps> = ({ isOpen, onClose 
 
             {/* Giant Outdoor Time Display */}
             <div
-              className={`font-mono text-6xl sm:text-7xl font-black tracking-tight select-none ${
+              className={`font-mono tabular-nums text-6xl sm:text-7xl font-black tracking-tight select-none ${
                 highContrast
                   ? 'text-yellow-300'
                   : isRunning
@@ -930,11 +933,12 @@ export const LiveMatchModal: React.FC<LiveMatchModalProps> = ({ isOpen, onClose 
 
               <button
                 type="button"
+                aria-label="Reset Match Stopwatch"
                 onClick={handleResetTimer}
                 className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
                 title="Reset Match Stopwatch"
               >
-                <RotateCcw className="w-5 h-5" />
+                <RotateCcw className="w-5 h-5" aria-hidden="true" />
               </button>
 
               <button
@@ -1054,9 +1058,9 @@ export const LiveMatchModal: React.FC<LiveMatchModalProps> = ({ isOpen, onClose 
 
               <div className="flex items-baseline gap-3 mt-4">
                 <span
-                  className={`font-mono text-5xl sm:text-6xl font-black ${
+                  className={`font-mono tabular-nums text-5xl sm:text-6xl font-black ${
                     secondsUntilNextSub <= 30 && isRunning
-                      ? 'text-rose-400 animate-pulse'
+                      ? 'text-rose-400 animate-pulse motion-reduce:animate-none'
                       : 'text-amber-400'
                   }`}
                 >
@@ -1068,7 +1072,7 @@ export const LiveMatchModal: React.FC<LiveMatchModalProps> = ({ isOpen, onClose 
               {/* Progress bar to next sub */}
               <div className="w-full h-3 rounded-full bg-slate-800 overflow-hidden mt-4 relative">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${
+                  className={`h-full rounded-full transition-[width,background-color] duration-500 ${
                     secondsUntilNextSub <= 30
                       ? 'bg-rose-500'
                       : 'bg-gradient-to-r from-amber-500 to-emerald-400'
@@ -1184,28 +1188,32 @@ export const LiveMatchModal: React.FC<LiveMatchModalProps> = ({ isOpen, onClose 
           {showAddScheduledSub && (
             <div className="p-3 rounded-xl bg-slate-900/95 border border-slate-800 grid grid-cols-1 sm:grid-cols-4 gap-2.5 items-end text-xs">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                <label htmlFor="live-sched-minute" className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
                   Minute in Period {activePeriod}
                 </label>
                 <input
+                  id="live-sched-minute"
+                  name="schedTargetMin"
                   type="number"
                   min={1}
                   max={periodDurationMins - 1}
                   value={schedTargetMin}
                   onChange={(e) => setSchedTargetMin(Number(e.target.value))}
-                  className="w-full min-h-[36px] px-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs"
+                  className="w-full min-h-[36px] px-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-rose-300 uppercase mb-1">
+                <label htmlFor="live-sched-off" className="block text-[10px] font-bold text-rose-300 uppercase mb-1">
                   Player OFF
                 </label>
                 <select
+                  id="live-sched-off"
+                  name="schedOffId"
                   value={schedOffId}
                   onChange={(e) => setSchedOffId(e.target.value)}
-                  className="w-full min-h-[36px] px-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs"
+                  className="w-full min-h-[36px] px-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                 >
-                  <option value="">Select OFF...</option>
+                  <option value="">Select OFF…</option>
                   {(currentLineup?.onPitch || [])
                     .filter((op) => !restedIdsSet.has(op.playerId))
                     .map((op) => {
@@ -1219,15 +1227,17 @@ export const LiveMatchModal: React.FC<LiveMatchModalProps> = ({ isOpen, onClose 
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-emerald-300 uppercase mb-1">
+                <label htmlFor="live-sched-on" className="block text-[10px] font-bold text-emerald-300 uppercase mb-1">
                   Player ON
                 </label>
                 <select
+                  id="live-sched-on"
+                  name="schedOnId"
                   value={schedOnId}
                   onChange={(e) => setSchedOnId(e.target.value)}
-                  className="w-full min-h-[36px] px-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs"
+                  className="w-full min-h-[36px] px-2.5 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                 >
-                  <option value="">Select ON...</option>
+                  <option value="">Select ON…</option>
                   {(currentLineup?.subs || [])
                     .filter((id) => !restedIdsSet.has(id) && id !== schedOffId)
                     .map((id) => {
@@ -1337,15 +1347,17 @@ export const LiveMatchModal: React.FC<LiveMatchModalProps> = ({ isOpen, onClose 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             {/* Outgoing Pitch Player */}
             <div>
-              <label className="block text-slate-400 font-semibold mb-1 text-[11px]">
+              <label htmlFor="live-quick-sub-off" className="block text-slate-400 font-semibold mb-1 text-[11px]">
                 Player Coming Off Pitch
               </label>
               <select
+                id="live-quick-sub-off"
+                name="selectedOffId"
                 value={selectedOffId}
                 onChange={(e) => setSelectedOffId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none focus:border-sky-500 font-medium"
+                className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-sky-500 font-medium"
               >
-                <option value="">-- Select Outgoing Player --</option>
+                <option value="">— Select Outgoing Player —</option>
                 {currentOnPitch.map((op) => (
                   <option key={op.playerId} value={op.playerId}>
                     {op.player?.squadNumber ? `#${op.player.squadNumber} ` : ''}
@@ -1357,15 +1369,17 @@ export const LiveMatchModal: React.FC<LiveMatchModalProps> = ({ isOpen, onClose 
 
             {/* Incoming Bench Player */}
             <div>
-              <label className="block text-slate-400 font-semibold mb-1 text-[11px]">
+              <label htmlFor="live-quick-sub-on" className="block text-slate-400 font-semibold mb-1 text-[11px]">
                 Substitute Coming On
               </label>
               <select
+                id="live-quick-sub-on"
+                name="selectedOnId"
                 value={selectedOnId}
                 onChange={(e) => setSelectedOnId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none focus:border-emerald-500 font-medium"
+                className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:border-emerald-500 font-medium"
               >
-                <option value="">-- Select Incoming Sub --</option>
+                <option value="">— Select Incoming Sub —</option>
                 {currentSubs.map((sub) => sub && (
                   <option key={sub.id} value={sub.id}>
                     {sub.squadNumber ? `#${sub.squadNumber} ` : ''}

@@ -124,7 +124,7 @@ export const BenchView: React.FC = () => {
       {/* Active Substitutes Bench */}
       <div
         data-tour-target="bench"
-        className="p-4 sm:p-6 rounded-3xl bg-[var(--surface-card)] border border-[var(--surface-border)] shadow-xl backdrop-blur-sm space-y-4 transition-all duration-200"
+        className="p-4 sm:p-6 rounded-3xl bg-[var(--surface-card)] border border-[var(--surface-border)] shadow-xl backdrop-blur-sm space-y-4 transition-colors duration-200"
       >
         <div className="flex items-center justify-between pb-3 border-b border-[var(--surface-border)]">
           <div className="flex items-center gap-3">
@@ -166,10 +166,19 @@ export const BenchView: React.FC = () => {
               return (
                 <div
                   key={sub.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Substitute ${sub.name}, ${sub.preferredPositions.join(', ')}`}
                   draggable
                   onDragStart={(e) => handleDragStart(e, sub.id)}
                   onClick={() => onSubClick(sub.id)}
-                  className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 group overflow-hidden ${
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onSubClick(sub.id);
+                    }
+                  }}
+                  className={`p-3.5 sm:p-4 rounded-2xl border transition-colors cursor-pointer flex flex-col justify-between space-y-3 group overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 ${
                     isSelected
                       ? 'ring-4 ring-sky-400 border-white bg-slate-900 shadow-xl shadow-sky-500/40 scale-102'
                       : isEligibleTarget
@@ -219,8 +228,8 @@ export const BenchView: React.FC = () => {
 
                   {/* Bottom Row: Match Stats & Quick Action Buttons */}
                   <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-300 font-mono">
-                      <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <div className="flex items-center gap-1.5 text-xs text-slate-300 font-mono tabular-nums">
+                      <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
                       <span>{pStats ? `${pStats.minutesPlayed}m played` : '0m'}</span>
                       <span className="text-slate-600">•</span>
                       <span
@@ -293,7 +302,7 @@ export const BenchView: React.FC = () => {
       </div>
 
       {/* Rested Squad (Rotation Roster & Matchday Call-Off Replacements) */}
-      <div className="p-4 sm:p-6 rounded-3xl bg-[var(--surface-card)] border border-[var(--surface-border)] shadow-lg space-y-4 transition-all duration-200">
+      <div className="p-4 sm:p-6 rounded-3xl bg-[var(--surface-card)] border border-[var(--surface-border)] shadow-lg space-y-4 transition-colors duration-200">
         <div className="flex items-center justify-between pb-3 border-b border-[var(--surface-border)]">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
@@ -331,8 +340,16 @@ export const BenchView: React.FC = () => {
               return (
                 <div
                   key={player.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => onRestedClick(player)}
-                  className={`p-3.5 sm:p-4 rounded-2xl border flex flex-col justify-between space-y-3 text-xs shadow-sm cursor-pointer transition ${
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onRestedClick(player);
+                    }
+                  }}
+                  className={`p-3.5 sm:p-4 rounded-2xl border flex flex-col justify-between space-y-3 text-xs shadow-sm cursor-pointer transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
                     isSwapTarget
                       ? 'border-emerald-500/80 bg-emerald-950/30 hover:bg-emerald-950/50 ring-2 ring-emerald-500/40 shadow-emerald-950/50'
                       : 'bg-slate-950/70 hover:bg-slate-900 border-slate-800/90 hover:border-slate-700'
@@ -409,15 +426,20 @@ export const BenchView: React.FC = () => {
 
       {/* Modal: Promote Rested Player to Team Sheet (Matchday Call-off) */}
       {promotingRestedPlayer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in print:hidden">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="promote-rested-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overscroll-contain animate-fade-in print:hidden"
+        >
           <div className="relative w-full max-w-md rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  <UserPlus className="w-5 h-5" />
+                  <UserPlus className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">Move to Team Sheet</h3>
+                  <h3 id="promote-rested-title" className="text-sm font-bold text-white">Move to Team Sheet</h3>
                   <p className="text-xs text-slate-400">
                     Promote <strong>{promotingRestedPlayer.name}</strong> on matchday
                   </p>
@@ -425,10 +447,11 @@ export const BenchView: React.FC = () => {
               </div>
               <button
                 type="button"
+                aria-label="Close modal"
                 onClick={() => setPromotingRestedPlayer(null)}
-                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 

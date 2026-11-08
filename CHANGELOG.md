@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-11-08
+
+### Changed
+- **Web Interface Guidelines UI & Accessibility Polish**:
+  - Added native dark-mode `color-scheme: dark` and touch ergonomics (`touch-action: manipulation`, `-webkit-tap-highlight-color: transparent`) in [`index.html`](client/index.html) and [`index.css`](client/src/index.css).
+  - Added a skip-to-content link (`#main-content`), `prefers-reduced-motion` (`motion-reduce:animate-none`) guards on spinners and pulsing indicators, and explicit `aria-label` attributes on icon-only controls across [`RootLayout.tsx`](client/src/RootLayout.tsx), [`router.tsx`](client/src/router.tsx), [`PitchView.tsx`](client/src/components/PitchView.tsx), [`BenchView.tsx`](client/src/components/BenchView.tsx), [`LiveMatchModal.tsx`](client/src/components/LiveMatchModal.tsx), [`SquadManager.tsx`](client/src/components/SquadManager.tsx), [`FixtureManager.tsx`](client/src/components/FixtureManager.tsx), and [`TeamDashboardView.tsx`](client/src/components/TeamDashboardView.tsx).
+  - Added keyboard accessibility (`role="button"`, `tabIndex={0}`, `onKeyDown` for Enter/Space, and `focus-visible:ring-*`) on interactive pitch player nodes and bench/rested player cards, `role="dialog"` + `overscroll-contain` on modals, `tabular-nums` on live timers/scoreboards/stats counters, and explicit `htmlFor`/`id` label associations on substitution scheduling forms.
+
 ## [1.8.1] - 2026-10-31
 
 ### Fixed
