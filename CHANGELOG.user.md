@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-08
+
+### Added
+- **Joint Player of the Match Awards (Multiple Winners per Match)** ([#44](https://github.com/rossdevereux/subshuffle/issues/44)):
+  - You can now select two or more players as joint **Players of the Match** in both the **Record Score & Scorers** modal and the **Post-Match Game Time** modal when multiple players put in standout performances.
+  - Every joint winner is displayed on the fixture card and printed referee match sheet, and each player receives full credit on the **Team Dashboard** Player of the Match leaderboard and **Season Fair Play** stats.
+
 ## [1.10.0] - 2026-11-08
 
 ### Changed

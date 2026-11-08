@@ -30,13 +30,14 @@ export const ScoreScorersModal: React.FC<ScoreScorersModalProps> = ({
   onClose,
   defaultLiveMode = false,
 }) => {
-  const { players, activeTeam, updateFixtureScore } = useMatchday();
+  const { players, activeTeam, updateFixtureScore, setPlayerOfTheMatch } = useMatchday();
   const { showToast } = useToast();
   const { t } = useTranslation();
 
   const [homeScore, setHomeScore] = useState<number>(0);
   const [awayScore, setAwayScore] = useState<number>(0);
   const [scorers, setScorers] = useState<GoalScorer[]>([]);
+  const [playerOfTheMatchIds, setPlayerOfTheMatchIds] = useState<string[]>([]);
   const [isLive, setIsLive] = useState<boolean>(defaultLiveMode);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -55,6 +56,13 @@ export const ScoreScorersModal: React.FC<ScoreScorersModalProps> = ({
     setHomeScore(typeof fixture.homeScore === 'number' ? Math.max(0, fixture.homeScore) : 0);
     setAwayScore(typeof fixture.awayScore === 'number' ? Math.max(0, fixture.awayScore) : 0);
     setScorers(fixture.scorers ? [...fixture.scorers] : []);
+    setPlayerOfTheMatchIds(
+      fixture.playerOfTheMatchIds && fixture.playerOfTheMatchIds.length > 0
+        ? [...fixture.playerOfTheMatchIds]
+        : fixture.playerOfTheMatchId
+        ? [fixture.playerOfTheMatchId]
+        : []
+    );
     setIsLive(Boolean(fixture.isLive || defaultLiveMode));
     setValidationError(null);
     setIsSubmitting(false);
@@ -218,6 +226,7 @@ export const ScoreScorersModal: React.FC<ScoreScorersModalProps> = ({
         status: newStatus,
         isLive,
       });
+      await setPlayerOfTheMatch(fixture.id, playerOfTheMatchIds);
 
       if (newStatus === 'Completed') {
         trackMatchCompleted({
@@ -544,6 +553,60 @@ export const ScoreScorersModal: React.FC<ScoreScorersModalProps> = ({
                 })}
               </div>
             )}
+          </div>
+
+          {/* Player(s) of the Match Multi-Selector */}
+          <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-white font-bold text-xs flex items-center gap-1.5">
+                <Trophy className="w-4 h-4 text-emerald-400" />
+                <span>Player(s) of the Match (Select 1 or more)</span>
+              </span>
+              {playerOfTheMatchIds.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    {playerOfTheMatchIds.length} Selected
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPlayerOfTheMatchIds([])}
+                    className="text-[10px] font-semibold text-slate-400 hover:text-white underline cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {squadPlayers.map((p) => {
+                const isSelected = playerOfTheMatchIds.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() =>
+                      setPlayerOfTheMatchIds((prev) =>
+                        prev.includes(p.id)
+                          ? prev.filter((id) => id !== p.id)
+                          : [...prev, p.id]
+                      )
+                    }
+                    className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition cursor-pointer ${
+                      isSelected
+                        ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/50 ring-1 ring-emerald-500/30 shadow-sm'
+                        : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700 hover:text-white'
+                    }`}
+                  >
+                    <span>{isSelected ? '⭐' : '☆'}</span>
+                    <span>
+                      {typeof p.squadNumber === 'number' ? `#${p.squadNumber} ` : ''}
+                      {p.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

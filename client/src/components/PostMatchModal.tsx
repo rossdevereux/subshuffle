@@ -32,7 +32,7 @@ export const PostMatchModal: React.FC<PostMatchModalProps> = ({
 
   const [trackingMode, setTrackingMode] = useState<'exact' | 'full_credit'>('full_credit');
   const [playerMinutes, setPlayerMinutes] = useState<Record<string, number>>({});
-  const [playerOfTheMatchId, setPlayerOfTheMatchId] = useState<string>('');
+  const [playerOfTheMatchIds, setPlayerOfTheMatchIds] = useState<string[]>([]);
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -40,7 +40,13 @@ export const PostMatchModal: React.FC<PostMatchModalProps> = ({
   useEffect(() => {
     if (!fixture || !fixture.matchSquad) return;
 
-    setPlayerOfTheMatchId(fixture.playerOfTheMatchId || '');
+    const initialPotmIds =
+      fixture.playerOfTheMatchIds && fixture.playerOfTheMatchIds.length > 0
+        ? fixture.playerOfTheMatchIds
+        : fixture.playerOfTheMatchId
+        ? [fixture.playerOfTheMatchId]
+        : [];
+    setPlayerOfTheMatchIds(initialPotmIds);
 
     if (fixture.postMatchRecording) {
       setTrackingMode(fixture.postMatchRecording.trackingMode);
@@ -95,7 +101,7 @@ export const PostMatchModal: React.FC<PostMatchModalProps> = ({
       };
 
       await savePostMatchRecording(fixture.id, recording);
-      await setPlayerOfTheMatch(fixture.id, playerOfTheMatchId || undefined);
+      await setPlayerOfTheMatch(fixture.id, playerOfTheMatchIds);
       onClose();
     } catch (err) {
       console.error('Failed to save post match recording:', err);
@@ -278,27 +284,64 @@ export const PostMatchModal: React.FC<PostMatchModalProps> = ({
             </div>
           )}
 
-          {/* Player of the Match / Sportsmanship Award Selector */}
-          <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-white font-bold text-xs flex items-center gap-1.5">
+          {/* Player(s) of the Match / Sportsmanship Award Multi-Selector */}
+          <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-white font-bold text-xs flex items-center gap-1.5">
                 <Award className="w-4 h-4 text-emerald-400" />
-                <span>Player of the Match / Sportsmanship Award (Optional)</span>
-              </label>
-              <span className="text-[10px] text-slate-400">FA Respect & Positive Motivation</span>
+                <span>Player(s) of the Match / Sportsmanship Award (Select 1 or more)</span>
+              </span>
+              <div className="flex items-center gap-2">
+                {playerOfTheMatchIds.length > 0 && (
+                  <>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                      {playerOfTheMatchIds.length} Selected
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPlayerOfTheMatchIds([])}
+                      className="text-[10px] font-semibold text-slate-400 hover:text-white underline cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-            <select
-              value={playerOfTheMatchId}
-              onChange={(e) => setPlayerOfTheMatchId(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none focus:border-indigo-500 font-medium"
-            >
-              <option value="">-- No Award Selected --</option>
-              {selectedPlayers.map((p) => p && (
-                <option key={p.id} value={p.id}>
-                  {p.squadNumber ? `#${p.squadNumber} ` : ''}{p.name}
-                </option>
-              ))}
-            </select>
+            <p className="text-[11px] text-slate-400">
+              Tap one or multiple players below to award sole or joint Player of the Match honors.
+            </p>
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
+              {selectedPlayers.map((p) => {
+                if (!p) return null;
+                const isSelected = playerOfTheMatchIds.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() =>
+                      setPlayerOfTheMatchIds((prev) =>
+                        prev.includes(p.id)
+                          ? prev.filter((id) => id !== p.id)
+                          : [...prev, p.id]
+                      )
+                    }
+                    className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition cursor-pointer ${
+                      isSelected
+                        ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/50 ring-1 ring-emerald-500/30 shadow-sm'
+                        : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700 hover:text-white'
+                    }`}
+                  >
+                    <span>{isSelected ? '⭐' : '☆'}</span>
+                    <span>
+                      {p.squadNumber ? `#${p.squadNumber} ` : ''}
+                      {p.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Optional Coach Notes */}

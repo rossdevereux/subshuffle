@@ -186,16 +186,25 @@ export async function calculateSeasonDashboardSummary(
     const matchFullMinutes = pCount * pDur;
     totalAvailableMinutes += matchFullMinutes;
 
-    // Track Player of the Match
-    if (f.playerOfTheMatchId) {
-      const acc = getAccumulator(f.playerOfTheMatchId);
+    // Track Player(s) of the Match (supports single or joint POTM recipients)
+    const potmIds = Array.from(
+      new Set(
+        f.playerOfTheMatchIds && f.playerOfTheMatchIds.length > 0
+          ? f.playerOfTheMatchIds.filter(Boolean)
+          : f.playerOfTheMatchId
+          ? [f.playerOfTheMatchId]
+          : []
+      )
+    );
+    potmIds.forEach((potmPlayerId) => {
+      const acc = getAccumulator(potmPlayerId);
       acc.potmAwards++;
       acc.latestPotmAward = {
         fixtureId: f.id,
         date: f.date,
         opponent: f.opponent,
       };
-    }
+    });
 
     // Track Goal Scorers
     if (f.scorers && f.scorers.length > 0) {
