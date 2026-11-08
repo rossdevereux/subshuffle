@@ -9,8 +9,8 @@ import { LandingPage } from './pages/LandingPage';
 
 const PageLoader: React.FC = () => (
   <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
-    <div className="w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-    <span className="text-xs text-slate-400 font-medium">Loading view...</span>
+    <div className="w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin motion-reduce:animate-none" />
+    <span className="text-xs text-slate-400 font-medium">Loading view…</span>
   </div>
 );
 
@@ -22,7 +22,6 @@ const LazyFixturesPage = React.lazy(() => import('./pages/FixturesPage').then((m
 const LazyStatsPage = React.lazy(() => import('./pages/StatsPage').then((m) => ({ default: m.StatsPage })));
 const LazyTeamDashboardPage = React.lazy(() => import('./pages/TeamDashboardPage').then((m) => ({ default: m.TeamDashboardPage })));
 const LazyTeamsPage = React.lazy(() => import('./pages/TeamsPage').then((m) => ({ default: m.TeamsPage })));
-const LazyAdminPage = React.lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })));
 const LazyCalculatorPage = React.lazy(() => import('./pages/CalculatorPage').then((m) => ({ default: m.CalculatorPage })));
 const LazyFeaturesPage = React.lazy(() => import('./pages/FeaturesPage').then((m) => ({ default: m.FeaturesPage })));
 const LazyRulesPage = React.lazy(() => import('./pages/RulesPage').then((m) => ({ default: m.RulesPage })));
@@ -116,12 +115,6 @@ const teamsRoute = createRoute({
   component: withSuspense(LazyTeamsPage),
 });
 
-const adminRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/admin',
-  component: withSuspense(LazyAdminPage),
-});
-
 const routeTree = rootRoute.addChildren([
   indexRoute,
   calculatorRoute,
@@ -136,7 +129,6 @@ const routeTree = rootRoute.addChildren([
   teamDashboardRoute,
   dashboardAliasRoute,
   teamsRoute,
-  adminRoute,
 ]);
 
 export const router = createRouter({ routeTree });

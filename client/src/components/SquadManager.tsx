@@ -227,7 +227,7 @@ export const SquadManager: React.FC = () => {
               <div
                 key={player.id}
                 data-testid={`player-card-${player.name.toLowerCase()}`}
-                className={`p-4 rounded-2xl border transition-all space-y-3 ${
+                className={`p-4 rounded-2xl border transition-colors space-y-3 ${
                   isInactiveForFixture
                     ? 'bg-slate-950/60 border-rose-900/40'
                     : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
@@ -336,7 +336,7 @@ export const SquadManager: React.FC = () => {
 
                 {/* Season Stats & Holidays Button */}
                 <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 text-slate-400 font-mono text-[11px]">
+                  <div className="flex items-center gap-2 text-slate-400 font-mono tabular-nums text-[11px]">
                     <span>{player.matchesPlayed} matches</span>
                     <span>•</span>
                     <span>{player.totalMinutesPlayed}m</span>

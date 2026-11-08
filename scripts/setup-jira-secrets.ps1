@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 
 $PROJECT_ID = "team-organiser-prod"
 $REGION     = "europe-west1"
-$SERVICES   = @("team-organiser-api", "backend-api-beta")
+$SERVICES   = @("subshuffle-api", "backend-api-beta")
 
 $JIRA_USER_EMAIL = Read-Host "Enter JIRA_USER_EMAIL (Atlassian account email)"
 $JIRA_API_TOKEN  = Read-Host "Enter JIRA_API_TOKEN (Atlassian API token)"

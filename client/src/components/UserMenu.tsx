@@ -88,7 +88,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ onOpenSettings }) => {
   };
 
   const roleLabel = isOwner
-    ? 'Club Admin'
+    ? 'Team Owner'
     : isCoach
     ? 'Team Coach'
     : currentUser
