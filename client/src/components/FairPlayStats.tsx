@@ -79,7 +79,15 @@ export const FairPlayStats: React.FC = () => {
 
     relevantFixtures.forEach((f) => {
       if (f.captainId) getAgg(f.captainId).captainCount++;
-      if (f.playerOfTheMatchId) getAgg(f.playerOfTheMatchId).potmCount++;
+      const potmIds =
+        f.playerOfTheMatchIds && f.playerOfTheMatchIds.length > 0
+          ? Array.from(new Set(f.playerOfTheMatchIds.filter(Boolean)))
+          : f.playerOfTheMatchId
+          ? [f.playerOfTheMatchId]
+          : [];
+      potmIds.forEach((pid) => {
+        getAgg(pid).potmCount++;
+      });
       if (f.scorers) {
         f.scorers.forEach((s) => {
           if (s.playerId) {

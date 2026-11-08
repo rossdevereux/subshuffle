@@ -753,15 +753,29 @@ export const FixtureManager: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Player of the Match Award (if recorded) */}
-                {fixture.playerOfTheMatchId && playerMap.get(fixture.playerOfTheMatchId) && (
-                  <div className="pt-1 flex items-center gap-1 text-[10px]">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold">
-                      <Award className="w-3 h-3 text-emerald-400" />
-                      <span>⭐ Award: {playerMap.get(fixture.playerOfTheMatchId)?.name}</span>
-                    </span>
-                  </div>
-                )}
+                {/* Player(s) of the Match Award (if recorded) */}
+                {(() => {
+                  const potmIds =
+                    fixture.playerOfTheMatchIds && fixture.playerOfTheMatchIds.length > 0
+                      ? fixture.playerOfTheMatchIds
+                      : fixture.playerOfTheMatchId
+                      ? [fixture.playerOfTheMatchId]
+                      : [];
+                  const potmNames = potmIds
+                    .map((id) => playerMap.get(id)?.name)
+                    .filter(Boolean) as string[];
+                  if (potmNames.length === 0) return null;
+                  return (
+                    <div className="pt-1 flex items-center gap-1 text-[10px]">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold">
+                        <Award className="w-3 h-3 text-emerald-400" />
+                        <span>
+                          ⭐ {potmNames.length > 1 ? 'Awards' : 'Award'}: {potmNames.join(', ')}
+                        </span>
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Goal Scorers list preview */}
                 {fixture.scorers && fixture.scorers.length > 0 && (

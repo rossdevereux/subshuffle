@@ -648,6 +648,12 @@ router.post('/fixtures', requireActiveSubscription, async (req: AuthenticatedReq
         ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(groundAddress)}`
         : undefined);
 
+    const initialPotmIds = Array.isArray(body.playerOfTheMatchIds)
+      ? Array.from(new Set(body.playerOfTheMatchIds.map((id: any) => String(id).trim()).filter(Boolean)))
+      : body.playerOfTheMatchId
+      ? [String(body.playerOfTheMatchId).trim()]
+      : [];
+
     const newFixture: Fixture = {
       id: body.id || `fix_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       teamId: body.teamId.trim(),
@@ -658,7 +664,8 @@ router.post('/fixtures', requireActiveSubscription, async (req: AuthenticatedReq
       groundAddress: groundAddress || undefined,
       mapsUrl: mapsUrl || undefined,
       captainId: body.captainId || undefined,
-      playerOfTheMatchId: body.playerOfTheMatchId || undefined,
+      playerOfTheMatchId: initialPotmIds[0] || undefined,
+      playerOfTheMatchIds: initialPotmIds.length > 0 ? initialPotmIds : undefined,
       opponent: body.opponent.trim(),
       venue: body.venue || 'Home',
       status: body.status || 'Upcoming',
@@ -826,12 +833,21 @@ router.put('/fixtures/:id/captain', async (req: Request, res: Response) => {
 router.put('/fixtures/:id/player-of-the-match', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { playerOfTheMatchId } = req.body as { playerOfTheMatchId?: string };
+    const { playerOfTheMatchId, playerOfTheMatchIds } = req.body as {
+      playerOfTheMatchId?: string;
+      playerOfTheMatchIds?: string[];
+    };
     const existing = await storage.getFixtureById(id);
     if (!existing) {
       return res.status(404).json({ error: 'Fixture not found' });
     }
-    existing.playerOfTheMatchId = playerOfTheMatchId;
+    const normalizedPotmIds = Array.isArray(playerOfTheMatchIds)
+      ? Array.from(new Set(playerOfTheMatchIds.map((pid) => String(pid).trim()).filter(Boolean)))
+      : playerOfTheMatchId
+      ? [String(playerOfTheMatchId).trim()]
+      : [];
+    existing.playerOfTheMatchIds = normalizedPotmIds.length > 0 ? normalizedPotmIds : undefined;
+    existing.playerOfTheMatchId = normalizedPotmIds[0] || undefined;
     const saved = await storage.saveFixture(existing);
     res.json(saved);
   } catch (err: any) {

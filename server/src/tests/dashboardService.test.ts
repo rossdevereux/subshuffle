@@ -177,6 +177,7 @@ describe('Team Dashboard & Season Analytics Suite (Issue #17)', () => {
       homeScore: 1,
       awayScore: 2, // 1-2 loss
       playerOfTheMatchId: 'p_dash_2', // Sophia Jenkins (2nd PotM)
+      playerOfTheMatchIds: ['p_dash_2', 'p_dash_5'], // Joint POTM: Sophia Jenkins & Leo Vance
       scorers: [
         { id: 's6', playerId: 'p_dash_2', playerName: 'Sophia Jenkins', team: 'home', minute: '18' },
         { id: 's7', playerName: 'Opponent Striker', team: 'away', minute: '22' },
@@ -235,11 +236,16 @@ describe('Team Dashboard & Season Analytics Suite (Issue #17)', () => {
     assert.equal(topPotm.latestAward?.opponent, 'Hungerford Town');
     assert.equal(topPotm.latestAward?.date, '2026-10-18');
 
-    // 2nd: Maya Sharma with 1 award
-    const secondPotm = summary.potmLeaderboard[1];
-    assert.equal(secondPotm.playerId, 'p_dash_4');
-    assert.equal(secondPotm.awardsCount, 1);
-    assert.equal(secondPotm.latestAward?.opponent, 'Newbury FC');
+    // 2nd/3rd: Maya Sharma and Leo Vance each with 1 award (Leo shared joint POTM in fixture 3)
+    const mayaPotm = summary.potmLeaderboard.find((p) => p.playerId === 'p_dash_4');
+    assert.ok(mayaPotm);
+    assert.equal(mayaPotm.awardsCount, 1);
+    assert.equal(mayaPotm.latestAward?.opponent, 'Newbury FC');
+
+    const leoPotm = summary.potmLeaderboard.find((p) => p.playerId === 'p_dash_5');
+    assert.ok(leoPotm);
+    assert.equal(leoPotm.awardsCount, 1);
+    assert.equal(leoPotm.latestAward?.opponent, 'Hungerford Town');
   });
 
   it('recognizes defensive contributions in The Wall (clean sheets on pitch & defensive minutes)', async () => {

@@ -266,7 +266,7 @@ Grassroots football is unpredictable — a player gets injured in the 12th minut
 Keep track of match milestones on the touchline:
 - Tap **Record Goal** to log home and away score updates.
 - Assign the goal scorer and assist (optional).
-- At the final whistle, designate the **Player of the Match** award.
+- At the final whistle, designate one or more **Player(s) of the Match** (supporting sole or joint awards when multiple players put in standout performances).
 
 ---
 

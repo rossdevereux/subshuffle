@@ -67,7 +67,15 @@ export const PrintMatchSheet: React.FC<PrintMatchSheetProps> = ({ isOpen, onClos
   });
 
   const captainPlayer = activeFixture.captainId ? playerMap.get(activeFixture.captainId) : null;
-  const potmPlayer = activeFixture.playerOfTheMatchId ? playerMap.get(activeFixture.playerOfTheMatchId) : null;
+  const potmPlayerIds =
+    activeFixture.playerOfTheMatchIds && activeFixture.playerOfTheMatchIds.length > 0
+      ? activeFixture.playerOfTheMatchIds
+      : activeFixture.playerOfTheMatchId
+      ? [activeFixture.playerOfTheMatchId]
+      : [];
+  const potmPlayers = potmPlayerIds
+    .map((id) => playerMap.get(id))
+    .filter(Boolean);
 
   const modalContent = (
     <div
@@ -178,7 +186,7 @@ export const PrintMatchSheet: React.FC<PrintMatchSheetProps> = ({ isOpen, onClos
           )}
 
           {/* Matchday Captain & Player of Match Accolades */}
-          {(captainPlayer || potmPlayer) && (
+          {(captainPlayer || potmPlayers.length > 0) && (
             <div className="grid grid-cols-2 gap-4 text-xs font-mono">
               {captainPlayer && (
                 <div className="p-2.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-950">
@@ -186,10 +194,14 @@ export const PrintMatchSheet: React.FC<PrintMatchSheetProps> = ({ isOpen, onClos
                   <span className="font-bold text-sm">#{captainPlayer.squadNumber || '—'} {captainPlayer.name}</span>
                 </div>
               )}
-              {potmPlayer && (
+              {potmPlayers.length > 0 && (
                 <div className="p-2.5 rounded-xl border border-indigo-300 bg-indigo-50 text-indigo-950">
-                  <span className="text-[10px] uppercase font-sans font-bold text-indigo-800 block">Player of the Match ★</span>
-                  <span className="font-bold text-sm">#{potmPlayer.squadNumber || '—'} {potmPlayer.name}</span>
+                  <span className="text-[10px] uppercase font-sans font-bold text-indigo-800 block">
+                    {potmPlayers.length > 1 ? 'Players of the Match ★' : 'Player of the Match ★'}
+                  </span>
+                  <span className="font-bold text-sm">
+                    {potmPlayers.map((p) => `#${p!.squadNumber || '—'} ${p!.name}`).join(', ')}
+                  </span>
                 </div>
               )}
             </div>
