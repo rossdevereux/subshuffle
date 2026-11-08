@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-11-08
+
+### Added
+- **React Native (Expo) Mobile App with Pocket-Safe Background Match Alarms** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
+  - Added the native iOS & Android mobile app (`mobile/`) featuring a 2D SVG tactical pitch with haptic tap-to-swap rotations, High-Contrast Sunlight Mode, 1-tap WhatsApp/PDF match sheet exports, and OS-level background substitution & full-time whistle notifications that fire even when your phone is locked in your pocket.
+
 ## [1.11.0] - 2026-11-08
 
 ### Added
