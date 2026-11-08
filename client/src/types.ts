@@ -189,7 +189,8 @@ export interface Fixture {
   groundAddress?: string; // e.g. 'Riverside Sports Ground, Postcode RG1 4PS'
   mapsUrl?: string; // Clickable Google Maps URL
   captainId?: string; // Player ID of matchday captain
-  playerOfTheMatchId?: string; // Player ID of Player of the Match / Sportsmanship Award
+  playerOfTheMatchId?: string; // Primary Player ID of Player of the Match (kept for backward compatibility)
+  playerOfTheMatchIds?: string[]; // Player IDs of one or more joint Players of the Match / Sportsmanship Award
   opponent: string;
   venue: 'Home' | 'Away';
   status: 'Upcoming' | 'In Progress' | 'Completed' | 'Played' | 'Draft' | 'Cancelled' | 'Postponed';

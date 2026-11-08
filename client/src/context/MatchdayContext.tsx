@@ -96,7 +96,7 @@ interface MatchdayContextType {
   updateFixture: (fixture: Fixture) => Promise<void>;
   deleteFixture: (id: string) => Promise<void>;
   setMatchCaptain: (fixtureId: string, captainId?: string) => Promise<void>;
-  setPlayerOfTheMatch: (fixtureId: string, playerOfTheMatchId?: string) => Promise<void>;
+  setPlayerOfTheMatch: (fixtureId: string, playerOfTheMatchIdOrIds?: string | string[]) => Promise<void>;
   // Settings & Seasons
   updateSettings: (newSettings: TeamSettings) => Promise<void>;
   createSeason: (seasonName: string) => Promise<void>;
@@ -2167,16 +2167,29 @@ export const MatchdayProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const setPlayerOfTheMatch = async (fixtureId: string, playerOfTheMatchId?: string) => {
+  const setPlayerOfTheMatch = async (
+    fixtureId: string,
+    playerOfTheMatchIdOrIds?: string | string[]
+  ) => {
     try {
+      const normalizedIds = Array.isArray(playerOfTheMatchIdOrIds)
+        ? Array.from(new Set(playerOfTheMatchIdOrIds.map((id) => id.trim()).filter(Boolean)))
+        : playerOfTheMatchIdOrIds
+        ? [playerOfTheMatchIdOrIds.trim()]
+        : [];
+      const playerOfTheMatchIds = normalizedIds.length > 0 ? normalizedIds : undefined;
+      const playerOfTheMatchId = normalizedIds[0] || undefined;
+
       setFixtures((prev) =>
-        prev.map((f) => (f.id === fixtureId ? { ...f, playerOfTheMatchId } : f))
+        prev.map((f) =>
+          f.id === fixtureId ? { ...f, playerOfTheMatchId, playerOfTheMatchIds } : f
+        )
       );
       const headers = await getAuthHeaders();
       await fetch(`/api/fixtures/${fixtureId}/player-of-the-match`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify({ playerOfTheMatchId }),
+        body: JSON.stringify({ playerOfTheMatchId, playerOfTheMatchIds }),
       });
     } catch (err) {
       console.error('Failed to set player of the match:', err);

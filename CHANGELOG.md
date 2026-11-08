@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-08
+
+### Added
+- **Multiple Players of the Match (Joint POTM Awards) per Fixture** ([#44](https://github.com/rossdevereux/subshuffle/issues/44)):
+  - Added `playerOfTheMatchIds?: string[]` to [`Fixture`](server/src/types.ts) (while preserving `playerOfTheMatchId` for backward compatibility) and updated `PUT /api/fixtures/:id/player-of-the-match` and `POST /api/fixtures` in [`server/src/routes/api.ts`](server/src/routes/api.ts).
+  - Replaced the single-player dropdown in [`PostMatchModal.tsx`](client/src/components/PostMatchModal.tsx) with an interactive multi-select pill grid and added a matching multi-select **Player(s) of the Match** selector in [`ScoreScorersModal.tsx`](client/src/components/ScoreScorersModal.tsx) so coaches can select two or more joint winners in a single match.
+  - Updated [`dashboardService.ts`](server/src/services/dashboardService.ts), [`FairPlayStats.tsx`](client/src/components/FairPlayStats.tsx), [`FixtureManager.tsx`](client/src/components/FixtureManager.tsx), and [`PrintMatchSheet.tsx`](client/src/components/PrintMatchSheet.tsx) to credit and display all joint POTM recipients across season leaderboards, fixture cards, and printed match sheets.
+
 ## [1.10.0] - 2026-11-08
 
 ### Added
