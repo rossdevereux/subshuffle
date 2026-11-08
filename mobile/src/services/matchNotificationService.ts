@@ -2,16 +2,27 @@ import * as Notifications from 'expo-notifications';
 import * as Haptics from 'expo-haptics';
 import { Fixture, PlannedInGameSub, Player } from '@subshuffle/shared';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+let handlerInitialized = false;
+
+export function ensureNotificationHandlerInitialized(): void {
+  if (handlerInitialized) return;
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+    handlerInitialized = true;
+  } catch {
+    // Ignore on environments where notification handler initialization is unsupported
+  }
+}
 
 export async function requestMatchNotificationPermissions(): Promise<boolean> {
   try {
+    ensureNotificationHandlerInitialized();
     const existing = await Notifications.getPermissionsAsync();
     if (existing.status === 'granted') return true;
     const requested = await Notifications.requestPermissionsAsync();
@@ -21,7 +32,9 @@ export async function requestMatchNotificationPermissions(): Promise<boolean> {
   }
 }
 
-export async function triggerTouchlineHaptic(type: 'swap' | 'whistle' | 'goal' = 'swap'): Promise<void> {
+export async function triggerTouchlineHaptic(
+  type: 'swap' | 'whistle' | 'goal' = 'swap'
+): Promise<void> {
   try {
     if (type === 'whistle') {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -66,66 +79,70 @@ export async function scheduleLiveMatchAlarms(params: {
     playerMap,
   } = params;
 
-  await cancelScheduledMatchAlarms();
-  const hasPermission = await requestMatchNotificationPermissions();
-  if (!hasPermission) return 0;
+  try {
+    ensureNotificationHandlerInitialized();
+    await cancelScheduledMatchAlarms();
+    const hasPermission = await requestMatchNotificationPermissions();
+    if (!hasPermission) return 0;
 
-  let scheduledCount = 0;
+    let scheduledCount = 0;
 
-  // Group unexecuted subs for the current period by targetMinute
-  const windowMap = new Map<number, PlannedInGameSub[]>();
-  plannedSubs
-    .filter((s) => s.period === activePeriod && !s.executed)
-    .forEach((s) => {
-      const list = windowMap.get(s.targetMinute) || [];
-      list.push(s);
-      windowMap.set(s.targetMinute, list);
-    });
+    // Group unexecuted subs for the current period by targetMinute
+    const windowMap = new Map<number, PlannedInGameSub[]>();
+    (plannedSubs || [])
+      .filter((s) => s.period === activePeriod && !s.executed)
+      .forEach((s) => {
+        const list = windowMap.get(s.targetMinute) || [];
+        list.push(s);
+        windowMap.set(s.targetMinute, list);
+      });
 
-  for (const [targetMinute, subs] of windowMap.entries()) {
-    const targetSeconds = Math.round(targetMinute * 60);
-    const secondsUntilWindow = targetSeconds - currentElapsedSeconds;
-    if (secondsUntilWindow > 1) {
-      const swapDescriptions = subs
-        .map((s) => {
-          const offName = playerMap.get(s.offPlayerId)?.name || 'Starter';
-          const onName = playerMap.get(s.onPlayerId)?.name || 'Sub';
-          return `OFF ${offName} ➔ ON ${onName} (${s.position})`;
-        })
-        .join(' • ');
+    for (const [targetMinute, subs] of windowMap.entries()) {
+      const targetSeconds = Math.round(targetMinute * 60);
+      const secondsUntilWindow = targetSeconds - currentElapsedSeconds;
+      if (secondsUntilWindow > 1) {
+        const swapDescriptions = subs
+          .map((s) => {
+            const offName = playerMap.get(s.offPlayerId)?.name || 'Starter';
+            const onName = playerMap.get(s.onPlayerId)?.name || 'Sub';
+            return `OFF ${offName} ➔ ON ${onName} (${s.position})`;
+          })
+          .join(' • ');
 
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `🔄 Sub Window Open (${subs[0]?.matchMinute || targetMinute}') — vs ${fixture.opponent}`,
+            body: swapDescriptions,
+            sound: true,
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds: secondsUntilWindow,
+          },
+        });
+        scheduledCount++;
+      }
+    }
+
+    // Schedule period-end referee whistle notification
+    const secondsUntilPeriodEnd = periodDurationSeconds - currentElapsedSeconds;
+    if (secondsUntilPeriodEnd > 1) {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: `🔄 Sub Window Open (${subs[0]?.matchMinute || targetMinute}') — vs ${fixture.opponent}`,
-          body: swapDescriptions,
+          title: `🏁 Period ${activePeriod} Complete — Whistle!`,
+          body: `Period ${activePeriod} vs ${fixture.opponent} has reached full time. Open SubShuffle to advance to the next period.`,
           sound: true,
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: secondsUntilWindow,
+          seconds: secondsUntilPeriodEnd,
         },
       });
       scheduledCount++;
     }
-  }
 
-  // Schedule period-end referee whistle notification
-  const secondsUntilPeriodEnd = periodDurationSeconds - currentElapsedSeconds;
-  if (secondsUntilPeriodEnd > 1) {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `🏁 Period ${activePeriod} Complete — Whistle!`,
-        body: `Period ${activePeriod} vs ${fixture.opponent} has reached full time. Open SubShuffle to advance to the next period.`,
-        sound: true,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: secondsUntilPeriodEnd,
-      },
-    });
-    scheduledCount++;
+    return scheduledCount;
+  } catch {
+    return 0;
   }
-
-  return scheduledCount;
 }
-

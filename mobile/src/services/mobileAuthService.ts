@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 import * as Linking from 'expo-linking';
-import * as Notifications from 'expo-notifications';
+import { parseQueryParams } from './mobileDataNormalizer';
+
+export { parseQueryParams };
 
 export interface MobileAuthUser {
   uid: string;
@@ -18,33 +20,22 @@ export interface PersistedMobilePrefs {
   sunlightMode?: boolean;
 }
 
-const STORAGE_CATEGORY_ID = 'subshuffle_persisted_state_v1';
+const STORAGE_KEY = 'subshuffle_persisted_state_v2';
 let memoryPrefs: PersistedMobilePrefs = { user: null };
 let cachedFirebaseApiKey: string | null =
   process.env.EXPO_PUBLIC_FIREBASE_API_KEY || null;
 
 /**
- * Loads persisted mobile session & preferences from on-device storage.
- * Uses localStorage on web and Expo Notifications persistent SharedPreferences category storage on native.
+ * Loads persisted mobile session & preferences safely without invoking native notification APIs.
  */
 export async function loadPersistedPrefs(): Promise<PersistedMobilePrefs> {
   try {
     if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-      const raw = localStorage.getItem(STORAGE_CATEGORY_ID);
+      const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         memoryPrefs = JSON.parse(raw);
         return memoryPrefs;
       }
-      return memoryPrefs;
-    }
-
-    const categories = await Notifications.getNotificationCategoriesAsync();
-    const match = categories.find((c) => c.identifier === STORAGE_CATEGORY_ID);
-    const encoded = match?.actions?.[0]?.buttonTitle;
-    if (encoded) {
-      const parsed = JSON.parse(encoded) as PersistedMobilePrefs;
-      memoryPrefs = parsed;
-      return parsed;
     }
   } catch {
     // Fallback to in-memory prefs
@@ -53,7 +44,7 @@ export async function loadPersistedPrefs(): Promise<PersistedMobilePrefs> {
 }
 
 /**
- * Saves mobile session & preferences persistently across app restarts.
+ * Saves mobile session & preferences safely in memory (and localStorage on web).
  */
 export async function savePersistedPrefs(
   partial: Partial<PersistedMobilePrefs>
@@ -63,23 +54,20 @@ export async function savePersistedPrefs(
     ...partial,
   };
   try {
-    const serialized = JSON.stringify(memoryPrefs);
     if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-      localStorage.setItem(STORAGE_CATEGORY_ID, serialized);
-      return memoryPrefs;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryPrefs));
     }
-
-    await Notifications.setNotificationCategoryAsync(STORAGE_CATEGORY_ID, [
-      {
-        identifier: 'state_payload',
-        buttonTitle: serialized,
-        options: { opensAppToForeground: false },
-      },
-    ]);
   } catch {
-    // Ignore persistence write error
+    // Ignore storage write error
   }
   return memoryPrefs;
+}
+
+/**
+ * Resets in-memory preferences (useful for testing and sign-out).
+ */
+export function resetMemoryPrefs(): void {
+  memoryPrefs = { user: null };
 }
 
 /**
@@ -118,12 +106,16 @@ export async function resolveFirebaseApiKey(apiBaseUrl: string): Promise<string>
   );
 }
 
+export function setCachedFirebaseApiKeyForTesting(key: string | null): void {
+  cachedFirebaseApiKey = key;
+}
+
 function formatFirebaseRestError(code?: string): string {
   switch (code) {
     case 'INVALID_LOGIN_CREDENTIALS':
     case 'INVALID_PASSWORD':
     case 'EMAIL_NOT_FOUND':
-      return 'Invalid email or password. If you originally signed up with Google, tap "Sign In with Google" or use "Forgot / Set Password" below.';
+      return 'Invalid email or password. If you originally signed up with Google, tap "Sign In with Google" or use "Reset Password" below.';
     case 'EMAIL_EXISTS':
       return 'An account with this email already exists. Please sign in instead.';
     case 'WEAK_PASSWORD : Password should be at least 6 characters':
@@ -159,17 +151,17 @@ export async function mobileSignInWithEmail(
       }),
     }
   );
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(formatFirebaseRestError(data?.error?.message));
   }
 
   const user: MobileAuthUser = {
-    uid: data.localId,
-    email: data.email || email.trim(),
-    displayName: data.displayName || undefined,
-    idToken: data.idToken,
-    refreshToken: data.refreshToken,
+    uid: String(data.localId || 'user'),
+    email: String(data.email || email.trim()),
+    displayName: data.displayName ? String(data.displayName) : undefined,
+    idToken: String(data.idToken || ''),
+    refreshToken: String(data.refreshToken || ''),
     expiresAt: Date.now() + (Number(data.expiresIn) || 3600) * 1000 - 60_000,
   };
   await savePersistedPrefs({ user });
@@ -198,12 +190,12 @@ export async function mobileRegisterWithEmail(
       }),
     }
   );
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(formatFirebaseRestError(data?.error?.message));
   }
 
-  let idToken = data.idToken;
+  let idToken = String(data.idToken || '');
   if (displayName && displayName.trim()) {
     try {
       const profileRes = await fetch(
@@ -219,8 +211,8 @@ export async function mobileRegisterWithEmail(
         }
       );
       if (profileRes.ok) {
-        const profileData = await profileRes.json();
-        if (profileData.idToken) idToken = profileData.idToken;
+        const profileData = await profileRes.json().catch(() => ({}));
+        if (profileData.idToken) idToken = String(profileData.idToken);
       }
     } catch {
       // Ignore optional profile update failure
@@ -228,11 +220,11 @@ export async function mobileRegisterWithEmail(
   }
 
   const user: MobileAuthUser = {
-    uid: data.localId,
-    email: data.email || email.trim(),
+    uid: String(data.localId || 'user'),
+    email: String(data.email || email.trim()),
     displayName: displayName?.trim() || undefined,
     idToken,
-    refreshToken: data.refreshToken,
+    refreshToken: String(data.refreshToken || ''),
     expiresAt: Date.now() + (Number(data.expiresIn) || 3600) * 1000 - 60_000,
   };
   await savePersistedPrefs({ user });
@@ -258,7 +250,7 @@ export async function mobileSendPasswordReset(
       }),
     }
   );
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(formatFirebaseRestError(data?.error?.message));
   }
@@ -287,11 +279,11 @@ export async function ensureFreshIdToken(
       body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(user.refreshToken)}`,
     });
     if (!res.ok) return user;
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     const updated: MobileAuthUser = {
       ...user,
-      idToken: data.id_token || user.idToken,
-      refreshToken: data.refresh_token || user.refreshToken,
+      idToken: data.id_token ? String(data.id_token) : user.idToken,
+      refreshToken: data.refresh_token ? String(data.refresh_token) : user.refreshToken,
       expiresAt: Date.now() + (Number(data.expires_in) || 3600) * 1000 - 60_000,
     };
     await savePersistedPrefs({ user: updated });
@@ -319,12 +311,12 @@ export async function parseAndSaveAuthDeepLink(url: string): Promise<MobileAuthU
   try {
     const queryIndex = url.indexOf('?');
     if (queryIndex === -1) return null;
-    const params = new URLSearchParams(url.slice(queryIndex + 1));
-    const idToken = params.get('idToken');
-    const refreshToken = params.get('refreshToken') || '';
-    const uid = params.get('uid') || 'user';
-    const email = params.get('email') || '';
-    const displayName = params.get('displayName') || undefined;
+    const params = parseQueryParams(url.slice(queryIndex + 1));
+    const idToken = params.idToken;
+    const refreshToken = params.refreshToken || '';
+    const uid = params.uid || 'user';
+    const email = params.email || '';
+    const displayName = params.displayName || undefined;
     if (!idToken) return null;
 
     const user: MobileAuthUser = {
@@ -341,4 +333,3 @@ export async function parseAndSaveAuthDeepLink(url: string): Promise<MobileAuthU
     return null;
   }
 }
-

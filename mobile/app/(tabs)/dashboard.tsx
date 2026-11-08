@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { getFixturePotmIds } from '@subshuffle/shared';
 import { useMobileMatchday } from '../../src/context/MobileMatchdayContext';
 import { MobileHeaderBar } from '../../src/components/MobileHeaderBar';
+import { normalizeDashboardSummary } from '../../src/services/mobileDataNormalizer';
 
 export default function DashboardScreen() {
   const {
@@ -17,78 +17,11 @@ export default function DashboardScreen() {
 
   const [viewMode, setViewMode] = useState<'dashboard' | 'matchday' | 'season'>('dashboard');
 
-  const playerMap = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
-
-  // Compute live fallback dashboard summary from fixtures if server summary hasn't loaded yet
-  const computedSummary = useMemo(() => {
-    if (dashboardSummary) return dashboardSummary;
-    const completed = fixtures.filter(
-      (f) =>
-        (f.status === 'Completed' || f.status === 'Played') &&
-        typeof f.homeScore === 'number' &&
-        typeof f.awayScore === 'number'
-    );
-    let wins = 0;
-    let draws = 0;
-    let losses = 0;
-    let goalsFor = 0;
-    let goalsAgainst = 0;
-    const goalCounts = new Map<string, number>();
-    const potmCounts = new Map<string, number>();
-
-    for (const f of fixtures) {
-      for (const pid of getFixturePotmIds(f)) {
-        potmCounts.set(pid, (potmCounts.get(pid) || 0) + 1);
-      }
-      const ourSide = f.venue === 'Home' ? 'home' : 'away';
-      for (const sc of f.scorers || []) {
-        if (sc.team === ourSide && sc.playerId && !sc.isOwnGoal) {
-          goalCounts.set(sc.playerId, (goalCounts.get(sc.playerId) || 0) + 1);
-        }
-      }
-    }
-
-    for (const f of completed) {
-      const us = f.venue === 'Home' ? f.homeScore! : f.awayScore!;
-      const them = f.venue === 'Home' ? f.awayScore! : f.homeScore!;
-      goalsFor += us;
-      goalsAgainst += them;
-      if (us > them) wins++;
-      else if (us === them) draws++;
-      else losses++;
-    }
-
-    const topScorers = Array.from(goalCounts.entries())
-      .map(([playerId, goals]) => ({
-        playerId,
-        playerName: playerMap.get(playerId)?.name || 'Player',
-        squadNumber: playerMap.get(playerId)?.squadNumber,
-        goals,
-      }))
-      .sort((a, b) => b.goals - a.goals);
-
-    const potmLeaders = Array.from(potmCounts.entries())
-      .map(([playerId, awards]) => ({
-        playerId,
-        playerName: playerMap.get(playerId)?.name || 'Player',
-        squadNumber: playerMap.get(playerId)?.squadNumber,
-        awards,
-      }))
-      .sort((a, b) => b.awards - a.awards);
-
-    return {
-      matchesPlayed: completed.length,
-      wins,
-      draws,
-      losses,
-      winRatePercent: completed.length > 0 ? Math.round((wins / completed.length) * 100) : 0,
-      goalsFor,
-      goalsAgainst,
-      goalDifference: goalsFor - goalsAgainst,
-      topScorers,
-      potmLeaders,
-    };
-  }, [dashboardSummary, fixtures, playerMap]);
+  // Normalize server or local summary safely
+  const computedSummary = useMemo(
+    () => normalizeDashboardSummary(dashboardSummary, fixtures, players),
+    [dashboardSummary, fixtures, players]
+  );
 
   const sortedByMinutes = [...players].sort(
     (a, b) => (b.totalMinutesPlayed || 0) - (a.totalMinutesPlayed || 0)

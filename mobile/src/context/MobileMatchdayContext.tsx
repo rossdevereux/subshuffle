@@ -36,6 +36,13 @@ import {
   openGoogleBrowserSignIn,
   parseAndSaveAuthDeepLink,
 } from '../services/mobileAuthService';
+import {
+  normalizeTeam,
+  normalizePlayer,
+  normalizeFixture,
+  normalizeMatchSquad,
+  normalizeDashboardSummary,
+} from '../services/mobileDataNormalizer';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://subshuffle-beta.web.app';
 
@@ -297,13 +304,17 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
   }, []);
 
   const activeTeam = useMemo(
-    () => teams.find((t) => t.id === activeTeamId) || teams[0] || FALLBACK_TEAM,
+    () => normalizeTeam(teams.find((t) => t.id === activeTeamId) || teams[0], FALLBACK_TEAM),
     [teams, activeTeamId]
   );
 
   const activeFixture = useMemo(
-    () => fixtures.find((f) => f.id === activeFixtureId) || fixtures[0] || FALLBACK_FIXTURE,
-    [fixtures, activeFixtureId]
+    () =>
+      normalizeFixture(
+        fixtures.find((f) => f.id === activeFixtureId) || fixtures[0] || FALLBACK_FIXTURE,
+        activeTeam.id
+      ),
+    [fixtures, activeFixtureId, activeTeam.id]
   );
 
   const periodDurationSeconds =
@@ -371,14 +382,26 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
           ),
         ]);
 
+        let normalizedPlayers: Player[] = [];
+        let normalizedFixtures: Fixture[] = [];
+
         if (playersRes.ok) {
-          const loadedPlayers: Player[] = await playersRes.json();
-          setPlayers(loadedPlayers);
+          const rawPlayers = await playersRes.json();
+          normalizedPlayers = Array.isArray(rawPlayers)
+            ? rawPlayers.map((p) => normalizePlayer(p, team.id))
+            : [];
+          setPlayers(normalizedPlayers);
         }
 
         if (fixturesRes.ok) {
-          const loadedFixtures: Fixture[] = await fixturesRes.json();
-          const sortedFixtures = [...loadedFixtures].sort((a, b) => a.date.localeCompare(b.date));
+          const rawFixtures = await fixturesRes.json();
+          const loadedFixtures: Fixture[] = Array.isArray(rawFixtures)
+            ? rawFixtures.map((f) => normalizeFixture(f, team.id))
+            : [];
+          const sortedFixtures = [...loadedFixtures].sort((a, b) =>
+            (a.date || '').localeCompare(b.date || '')
+          );
+          normalizedFixtures = sortedFixtures;
           setFixtures(sortedFixtures);
 
           const chosenFixture =
@@ -394,8 +417,14 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
         }
 
         if (dashRes.ok) {
-          const dashData: SeasonDashboardSummary = await dashRes.json();
-          setDashboardSummary(dashData);
+          const rawDash = await dashRes.json();
+          setDashboardSummary(
+            normalizeDashboardSummary(rawDash, normalizedFixtures, normalizedPlayers)
+          );
+        } else {
+          setDashboardSummary(
+            normalizeDashboardSummary(null, normalizedFixtures, normalizedPlayers)
+          );
         }
       } catch (err: any) {
         setErrorMessage(err?.message || 'Failed to load team workspace');
@@ -418,7 +447,10 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
         if (!res.ok) {
           throw new Error(`Unable to load teams (HTTP ${res.status})`);
         }
-        const fetchedTeams: Team[] = await res.json();
+        const rawTeams = await res.json();
+        const fetchedTeams: Team[] = Array.isArray(rawTeams)
+          ? rawTeams.map((t) => normalizeTeam(t, FALLBACK_TEAM))
+          : [];
         if (fetchedTeams.length > 0) {
           setTeams(fetchedTeams);
           const chosenTeam =
@@ -1350,17 +1382,17 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
       ensureEveryoneSubbedOnce: boolean
     ): Promise<SuggestedSubPlan[]> => {
       if (currentUser && !activeFixture.id.startsWith('demo-')) {
-        const query = new URLSearchParams({
-          interval: String(intervalMinutes),
-          subsPerWindow: String(subsPerWindow),
-          ensureEveryoneSubbedOnce: String(ensureEveryoneSubbedOnce),
-        });
+        const qs = `interval=${encodeURIComponent(
+          String(intervalMinutes)
+        )}&subsPerWindow=${encodeURIComponent(
+          String(subsPerWindow)
+        )}&ensureEveryoneSubbedOnce=${encodeURIComponent(String(ensureEveryoneSubbedOnce))}`;
         const res = await authFetch(
-          `/api/fixtures/${encodeURIComponent(activeFixture.id)}/suggested-subs?${query.toString()}`
+          `/api/fixtures/${encodeURIComponent(activeFixture.id)}/suggested-subs?${qs}`
         );
         if (res.ok) {
           const data = await res.json();
-          return data.plans || [];
+          return Array.isArray(data?.plans) ? data.plans : [];
         }
       }
 

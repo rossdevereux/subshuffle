@@ -69,9 +69,9 @@ export default function PitchAndBenchScreen() {
 
   const periodCount =
     activeFixture.matchPeriodCount || activeTeam.settings.matchPeriodCount || 2;
+  const lineupsList = activeFixture.matchSquad?.lineupsByPeriod || [];
   const currentLineup =
-    activeFixture.matchSquad?.lineupsByPeriod.find((lp) => lp.period === activePeriod) ||
-    activeFixture.matchSquad?.lineupsByPeriod[0];
+    lineupsList.find((lp) => lp.period === activePeriod) || lineupsList[0];
 
   const playerMap = new Map(players.map((p) => [p.id, p]));
   const fixedMap = {
@@ -264,8 +264,8 @@ export default function PitchAndBenchScreen() {
           />
         </Svg>
 
-        {activeFormation.positions.map((pos) => {
-          const assignment = currentLineup?.onPitch.find((op) => op.position === pos.code);
+        {(activeFormation.positions || []).map((pos) => {
+          const assignment = (currentLineup?.onPitch || []).find((op) => op.position === pos.code);
           const player = assignment ? playerMap.get(assignment.playerId) : undefined;
           const isSelected =
             selectedSwapSource?.type === 'pitch' &&
@@ -308,7 +308,7 @@ export default function PitchAndBenchScreen() {
                 </Text>
               </View>
               <Text style={styles.playerNodeName} numberOfLines={1}>
-                {player ? `${player.squadNumber ? `#${player.squadNumber} ` : ''}${player.name.split(' ')[0]}` : 'Empty'}
+                {player ? `${player.squadNumber ? `#${player.squadNumber} ` : ''}${(player.name || 'Player').split(' ')[0]}` : 'Empty'}
               </Text>
             </Pressable>
           );
@@ -602,7 +602,7 @@ export default function PitchAndBenchScreen() {
                         #{p.squadNumber ?? '-'} {p.name}
                       </Text>
                       <Text style={styles.squadSelectSub}>
-                        {p.preferredPositions.join(', ')}
+                        {(p.preferredPositions || ['Midfield']).join(', ')}
                         {isUnavailable ? ' • ⚠️ Marked Unavailable for this date' : ''}
                       </Text>
                     </View>

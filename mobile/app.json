@@ -7,12 +7,14 @@
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/eafdca34-5782-4c42-aa95-2c87f5768e21"
+      "url": "https://u.expo.dev/eafdca34-5782-4c42-aa95-2c87f5768e21",
+      "checkAutomatically": "NEVER",
+      "fallbackToCacheTimeout": 0
     },
     "orientation": "portrait",
     "scheme": "subshuffle",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash-icon.png",

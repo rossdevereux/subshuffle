@@ -84,7 +84,7 @@ export default function RotationMatrixScreen() {
               </View>
 
               {lineups.map((lp) => {
-                const pitchSlot = lp.onPitch.find((op) => op.playerId === player.id);
+                const pitchSlot = (lp.onPitch || []).find((op) => op.playerId === player.id);
                 const subIn = (activeFixture.matchSquad?.plannedInGameSubs || []).find(
                   (s) => s.period === lp.period && s.onPlayerId === player.id
                 );

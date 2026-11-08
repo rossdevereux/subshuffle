@@ -52,9 +52,13 @@ export default function SquadScreen() {
 
   const openEditPlayer = (p: Player) => {
     setEditingPlayer(p);
-    setName(p.name);
+    setName(p.name || '');
     setSquadNumber(p.squadNumber !== undefined ? String(p.squadNumber) : '');
-    setPositions(p.preferredPositions.length > 0 ? p.preferredPositions : ['Midfield']);
+    setPositions(
+      Array.isArray(p.preferredPositions) && p.preferredPositions.length > 0
+        ? p.preferredPositions
+        : ['Midfield']
+    );
     setFormOpen(true);
   };
 
@@ -156,7 +160,9 @@ export default function SquadScreen() {
               </View>
               <View style={styles.info}>
                 <Text style={styles.name}>{player.name}</Text>
-                <Text style={styles.positions}>{player.preferredPositions.join(' • ')}</Text>
+                <Text style={styles.positions}>
+                  {(player.preferredPositions || ['Midfield']).join(' • ')}
+                </Text>
                 <Text style={styles.seasonStats}>
                   {player.totalMinutesPlayed || 0}m played • {player.matchesPlayed || 0} matches
                   {(player.unavailableDates || []).length > 0

@@ -66,13 +66,17 @@ jobs:
       - name: Setup Gradle Cache
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Install Mobile Dependencies
-        working-directory: ./mobile
-        run: npm install
+      - name: Install Root & Mobile Dependencies
+        run: |
+          npm install
+          cd mobile && npm install
 
       - name: Typecheck Mobile App & Shared Package
         working-directory: ./mobile
         run: npm run typecheck
+
+      - name: Run Android Mobile Stability & Parity Test Suite
+        run: npx tsx --test server/src/tests/mobileApp.test.ts
 
       - name: Determine App Version & API Environment
         id: meta
