@@ -91,7 +91,17 @@ describe('Shared Domain Package (@subshuffle/shared) & Expo Mobile App Suite (Is
     assert.equal(appJson.expo?.ios?.bundleIdentifier, 'com.subshuffle.app');
     assert.equal(appJson.expo?.android?.package, 'com.subshuffle.app');
     assert.ok(easJson.build?.beta, 'Expected beta profile in eas.json');
+    assert.equal(easJson.build?.beta?.android?.buildType, 'apk');
     assert.ok(easJson.build?.production, 'Expected production profile in eas.json');
+    assert.equal(easJson.build?.production?.android?.buildType, 'app-bundle');
+
+    const mobileWorkflow = fs.readFileSync(
+      path.join(ROOT_DIR, '.github/workflows/mobile-eas.yml'),
+      'utf-8'
+    );
+    assert.ok(mobileWorkflow.includes('expo/expo-github-action@v8'));
+    assert.ok(mobileWorkflow.includes('eas build --platform'));
+    assert.ok(mobileWorkflow.includes('--auto-submit'));
   });
 });
 

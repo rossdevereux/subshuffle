@@ -1,0 +1,100 @@
+name: Mobile App Pipeline (EAS Build, OTA Update & Store Submit)
+
+on:
+  push:
+    branches:
+      - main
+      - beta
+    paths:
+      - 'mobile/**'
+      - 'packages/shared/**'
+      - '.github/workflows/mobile-eas.yml'
+  workflow_dispatch:
+    inputs:
+      action_type:
+        description: 'Mobile pipeline action to run'
+        required: true
+        default: 'build'
+        type: choice
+        options:
+          - ota-update
+          - build
+          - build-and-submit
+      platform:
+        description: 'Target mobile platform'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - android
+          - ios
+      profile:
+        description: 'EAS build profile (beta = internal APK/TestFlight, production = App Store/Play Store)'
+        required: true
+        default: 'beta'
+        type: choice
+        options:
+          - beta
+          - production
+
+jobs:
+  mobile-eas:
+    name: Expo EAS Mobile Pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check EXPO_TOKEN Secret
+        id: check_token
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ EXPO_TOKEN secret is not configured yet. Skipping EAS cloud step (typecheck still runs)."
+          else
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Mobile Dependencies
+        working-directory: ./mobile
+        run: npm install
+
+      - name: Typecheck Mobile App & Shared Package
+        working-directory: ./mobile
+        run: npm run typecheck
+
+      - name: Setup Expo & EAS CLI
+        if: steps.check_token.outputs.has_token == 'true'
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish Over-The-Air (OTA) Update on Push
+        if: steps.check_token.outputs.has_token == 'true' && (github.event_name == 'push' || inputs.action_type == 'ota-update')
+        working-directory: ./mobile
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ] || [ "${{ inputs.profile }}" == "production" ]; then
+            CHANNEL="production"
+          else
+            CHANNEL="beta"
+          fi
+          eas update --branch "$CHANNEL" --message "${{ github.event.head_commit.message || 'Manual OTA update' }}" --non-interactive
+
+      - name: Trigger EAS Cloud Build (iOS IPA / Android APK or AAB)
+        if: steps.check_token.outputs.has_token == 'true' && github.event_name == 'workflow_dispatch' && (inputs.action_type == 'build' || inputs.action_type == 'build-and-submit')
+        working-directory: ./mobile
+        run: |
+          SUBMIT_FLAG=""
+          if [ "${{ inputs.action_type }}" == "build-and-submit" ]; then
+            SUBMIT_FLAG="--auto-submit"
+          fi
+          eas build --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" $SUBMIT_FLAG --non-interactive --no-wait
