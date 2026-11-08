@@ -363,7 +363,7 @@ export const ReleaseNotesModal: React.FC<ReleaseNotesModalProps> = ({ isOpen, on
 
           <div className="flex items-center gap-3">
             <a
-              href="https://github.com/rossdevereux/team-organiser/blob/main/CHANGELOG.md"
+              href="https://github.com/rossdevereux/subshuffle/blob/main/CHANGELOG.md"
               target="_blank"
               rel="noopener noreferrer"
               className="text-slate-400 hover:text-emerald-400 transition flex items-center gap-1"

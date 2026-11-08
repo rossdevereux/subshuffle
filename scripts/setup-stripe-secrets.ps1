@@ -10,7 +10,7 @@ $ErrorActionPreference = "Stop"
 # 1. Configuration
 $PROJECT_ID = "team-organiser-prod"
 $REGION = "europe-west1"
-$SERVICE_NAME = "team-organiser-api"
+$SERVICE_NAME = "subshuffle-api"
 
 # Prompt securely for Stripe keys
 $STRIPE_SECRET_KEY = Read-Host "Enter STRIPE_SECRET_KEY (e.g. sk_live_...)"

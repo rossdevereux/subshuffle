@@ -10,7 +10,7 @@ on:
 env:
   GCP_PROJECT_ID: team-organiser-prod
   GCP_REGION: europe-west1
-  ARTIFACT_REGISTRY_REPO: team-organiser
+  ARTIFACT_REGISTRY_REPO: subshuffle
 
 jobs:
   # Determine environment targets based on branch
@@ -28,7 +28,7 @@ jobs:
         run: |
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
             echo "env_name=production" >> "$GITHUB_OUTPUT"
-            echo "cloud_run_service=team-organiser-api" >> "$GITHUB_OUTPUT"
+            echo "cloud_run_service=subshuffle-api" >> "$GITHUB_OUTPUT"
             echo "hosting_target=live" >> "$GITHUB_OUTPUT"
             echo "admin_hosting_target=admin" >> "$GITHUB_OUTPUT"
             echo "max_instances=10" >> "$GITHUB_OUTPUT"
@@ -59,9 +59,17 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: Configure Docker Auth for Google Artifact Registry
+      - name: Configure Docker Auth & Ensure Artifact Registry Repository
         run: |
           gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+          gcloud artifacts repositories describe "${{ env.ARTIFACT_REGISTRY_REPO }}" \
+            --location="${{ env.GCP_REGION }}" \
+            --project="${{ env.GCP_PROJECT_ID }}" >/dev/null 2>&1 || \
+          gcloud artifacts repositories create "${{ env.ARTIFACT_REGISTRY_REPO }}" \
+            --repository-format=docker \
+            --location="${{ env.GCP_REGION }}" \
+            --project="${{ env.GCP_PROJECT_ID }}" \
+            --description="SubShuffle Docker container registry"
 
       - name: Build and Push Server Docker Image
         run: |

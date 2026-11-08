@@ -91,8 +91,8 @@ SubShuffle is built to run indefinitely at **$0 / month** on Google Cloud Platfo
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/your-username/team-organiser.git
-cd team-organiser
+git clone https://github.com/rossdevereux/subshuffle.git
+cd subshuffle
 
 # Install dependencies across root, client, and server
 npm run install:all
@@ -177,7 +177,7 @@ gcloud services enable \
 ### Step 3: Set Up Artifact Registry
 Create a Docker repository in Artifact Registry:
 ```bash
-gcloud artifacts repositories create team-organiser \
+gcloud artifacts repositories create subshuffle \
   --repository-format=docker \
   --location=europe-west1 \
   --description="Docker repository for SubShuffle"
@@ -193,14 +193,14 @@ gcloud auth configure-docker europe-west1-docker.pkg.dev
 ### Step 4: Build & Deploy Backend to Cloud Run
 1. Build the container image:
 ```bash
-docker build -t europe-west1-docker.pkg.dev/team-organiser-prod/team-organiser/server:latest ./server
-docker push europe-west1-docker.pkg.dev/team-organiser-prod/team-organiser/server:latest
+docker build -t europe-west1-docker.pkg.dev/team-organiser-prod/subshuffle/server:latest ./server
+docker push europe-west1-docker.pkg.dev/team-organiser-prod/subshuffle/server:latest
 ```
 
 2. Deploy to Cloud Run with zero-idle scaling:
 ```bash
-gcloud run deploy team-organiser-api \
-  --image europe-west1-docker.pkg.dev/team-organiser-prod/team-organiser/server:latest \
+gcloud run deploy subshuffle-api \
+  --image europe-west1-docker.pkg.dev/team-organiser-prod/subshuffle/server:latest \
   --region europe-west1 \
   --platform managed \
   --allow-unauthenticated \
@@ -211,7 +211,7 @@ gcloud run deploy team-organiser-api \
   --cpu 1 \
   --update-env-vars NODE_ENV=production
 ```
-*Note: Note the service URL or ensure the serviceId matches `team-organiser-api` in `firebase.json`.*
+*Note: Note the service URL or ensure the serviceId matches `subshuffle-api` in `firebase.json`.*
 
 ---
 
@@ -228,7 +228,7 @@ Your `firebase.json` in the root directory configures multi-site Firebase Hostin
         {
           "source": "/api/**",
           "run": {
-            "serviceId": "team-organiser-api",
+            "serviceId": "subshuffle-api",
             "region": "europe-west1"
           }
         },
@@ -413,7 +413,7 @@ To persist your Stripe keys securely across all future Cloud Run deployments and
 Alternatively, provide them directly via `--update-env-vars`:
 
 ```bash
-gcloud run services update team-organiser-api \
+gcloud run services update subshuffle-api \
   --region europe-west1 \
   --update-env-vars STRIPE_SECRET_KEY=sk_live_...,STRIPE_WEBHOOK_SECRET=whsec_...
 ```
@@ -444,7 +444,7 @@ SubShuffle includes an in-app **Help & Feedback** modal (`POST /api/support/tick
   - `feature` -> `10003` (Suggestion)
   - `question` -> `10001` (Question)
 - **Cloud Run Secret Provisioning:**
-  Run the helper script once to store `JIRA_USER_EMAIL` and `JIRA_API_TOKEN` in Google Cloud Secret Manager and attach them to `team-organiser-api` and `backend-api-beta`:
+  Run the helper script once to store `JIRA_USER_EMAIL` and `JIRA_API_TOKEN` in Google Cloud Secret Manager and attach them to `subshuffle-api` and `backend-api-beta`:
   ```powershell
   .\scripts\setup-jira-secrets.ps1
   ```
