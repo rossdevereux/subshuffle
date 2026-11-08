@@ -140,7 +140,7 @@ git checkout -b issue-<id>-<short-slug>
 Use this workflow when implementation is finished and verified.
 
 ### Step 1: Mandatory Documentation & Changelog Updates
-1. Update **`CHANGELOG.md`** under `## [Unreleased]` (`### Added`, `### Changed`, or `### Fixed`) with file links and `([#<id>](https://github.com/rossdevereux/team-organiser/issues/<id>))`.
+1. Update **`CHANGELOG.md`** under `## [Unreleased]` (`### Added`, `### Changed`, or `### Fixed`) with file links and `([#<id>](https://github.com/rossdevereux/subshuffle/issues/<id>))`.
 2. Update **`CHANGELOG.user.md`** under `## [Unreleased]` in a coach-friendly tone.
 3. Update **`docs/USER_GUIDE.md`** if any user-facing workflows, UI, or settings changed, and run:
    ```powershell
@@ -249,7 +249,7 @@ if ($LASTEXITCODE -ne 0) {
   git merge beta -m "chore(release): promote beta v$VERSION to production"
 }
 
-# Push main and tags to trigger production CI/CD (subshuffle.com + team-organiser-api)
+# Push main and tags to trigger production CI/CD (subshuffle.com + subshuffle-api)
 git push origin main --follow-tags
 ```
 
@@ -275,7 +275,7 @@ git checkout beta
 
 Confirm to the user:
 - `beta` (`v$VERSION`) has been merged and pushed to `main`.
-- GitHub Actions is deploying the live production environment (`https://subshuffle.com` and `team-organiser-api`).
+- GitHub Actions is deploying the live production environment (`https://subshuffle.com` and `subshuffle-api`).
 - GitHub Release `v$VERSION` is published.
 - Active local branch has been safely returned to `beta`.
 

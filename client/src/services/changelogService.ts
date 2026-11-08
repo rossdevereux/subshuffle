@@ -30,7 +30,7 @@ const FALLBACK_CHANGELOG: ChangelogResponse = {
         {
           title: 'Added',
           items: [
-            'App version display in footer with interactive, searchable Changelog modal ([#5](https://github.com/rossdevereux/team-organiser/issues/5)).',
+            'App version display in footer with interactive, searchable Changelog modal ([#5](https://github.com/rossdevereux/subshuffle/issues/5)).',
             'Fixture-specific goalkeeper and position lock/unlock overrides.',
             'Universal GitHub issue lifecycle and release automation skill.',
           ],

@@ -6,6 +6,7 @@
     "team-organiser-prod": {
       "hosting": {
         "live": [
+          "subshuffle-live",
           "team-organiser-prod"
         ],
         "beta": [

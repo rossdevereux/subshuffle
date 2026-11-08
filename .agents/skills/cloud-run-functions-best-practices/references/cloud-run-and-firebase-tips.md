@@ -147,5 +147,5 @@ When calling external APIs (such as Jira Cloud REST API or Stripe):
 When configuring `.github/workflows/deploy.yml` or running `gcloud run deploy`:
 - **Preserve Existing Environment Variables**: Always use `--update-env-vars` and `--update-secrets` instead of `--set-env-vars` (which deletes all other environment variables on the service).
 - **Scale to Zero When Idle**: Set `--min-instances 0` to keep idle cost at `$0/month` unless sub-second cold starts are strictly required.
-- **Cap Maximum Instances**: Set `--max-instances` (e.g., `2` on `backend-api-beta`, `10` on `team-organiser-api`) to prevent unexpected cost spikes during traffic surges.
+- **Cap Maximum Instances**: Set `--max-instances` (e.g., `2` on `backend-api-beta`, `10` on `subshuffle-api`) to prevent unexpected cost spikes during traffic surges.
 

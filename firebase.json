@@ -97,7 +97,7 @@
         {
           "source": "/api/**",
           "run": {
-            "serviceId": "team-organiser-api",
+            "serviceId": "subshuffle-api",
             "region": "europe-west1"
           }
         },
@@ -264,7 +264,7 @@
         {
           "source": "/api/**",
           "run": {
-            "serviceId": "team-organiser-api",
+            "serviceId": "subshuffle-api",
             "region": "europe-west1"
           }
         },

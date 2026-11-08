@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the **SubShuffle (Team Organiser)** project will be documented in this file.
+All notable changes to the **SubShuffle** project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -12,13 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.10.0] - 2026-11-08
 
 ### Added
-- **Standalone Single-Owner Firewalled Platform Admin Application (`admin/`)** ([#42](https://github.com/rossdevereux/team-organiser/issues/42)):
+- **Standalone Single-Owner Firewalled Platform Admin Application (`admin/`)** ([#42](https://github.com/rossdevereux/subshuffle/issues/42)):
   - Created an isolated Vite + React + TypeScript Platform Admin Console in [`admin/`](admin/src/App.tsx) (`npm run dev:admin`, `npm run build:admin`) for site-wide user management, **Free for Life (`lifetime`)** subscription grants, team ownership inspection, and full JSON database backup/restore.
   - Added [`requireSuperAdmin`](server/src/middleware/auth.ts) middleware and `GET /api/admin/me` in [`server/src/routes/admin.ts`](server/src/routes/admin.ts) to firewall all `/api/admin/*` endpoints strictly to the configured platform owner (`SUPER_ADMIN_UID` / `SUPER_ADMIN_EMAIL`), returning `403 Forbidden` to regular team owners and coaches.
   - Provisioned dedicated Firebase Hosting multi-sites (`subshuffle-admin` and `subshuffle-admin-beta`) in [`.firebaserc`](.firebaserc), [`firebase.json`](firebase.json), and [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
 
+### Changed
+- **Standardize GitHub, Monorepo Package, and Firebase/Cloud Run Naming to `subshuffle`** ([#43](https://github.com/rossdevereux/subshuffle/issues/43)):
+  - Renamed the GitHub repository to [`rossdevereux/subshuffle`](https://github.com/rossdevereux/subshuffle) and updated all repository URLs across [`LICENSE`](LICENSE), [`README.md`](README.md), [`CHANGELOG.md`](CHANGELOG.md), [`CHANGELOG.user.md`](CHANGELOG.user.md), [`ReleaseNotesModal.tsx`](client/src/components/ReleaseNotesModal.tsx), and [`changelogService.ts`](client/src/services/changelogService.ts).
+  - Updated monorepo package names in [`package.json`](package.json) (`subshuffle`), [`client/package.json`](client/package.json) (`subshuffle-client`), [`server/package.json`](server/package.json) (`subshuffle-server`), and [`admin/package.json`](admin/package.json) (`subshuffle-admin`), as well as the API health check identifier (`subshuffle-api`) in [`server/src/index.ts`](server/src/index.ts).
+  - Provisioned the `subshuffle-live` Firebase Hosting site (`https://subshuffle-live.web.app`) and updated [`.firebaserc`](.firebaserc), [`firebase.json`](firebase.json), [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml), and [`stagingPipeline.test.ts`](server/src/tests/stagingPipeline.test.ts) to target the `subshuffle` Artifact Registry repository and `subshuffle-api` Cloud Run production service.
+
 ### Removed
-- **In-App Club Admin Menu & Route (`/admin`) from Coach Web Client** ([#42](https://github.com/rossdevereux/team-organiser/issues/42)):
+- **In-App Club Admin Menu & Route (`/admin`) from Coach Web Client** ([#42](https://github.com/rossdevereux/subshuffle/issues/42)):
   - Removed the legacy in-app **Admin** navigation link and `/admin` route from [`Navbar.tsx`](client/src/components/Navbar.tsx), [`router.tsx`](client/src/router.tsx), [`RootLayout.tsx`](client/src/RootLayout.tsx), and [`MatchdayContext.tsx`](client/src/context/MatchdayContext.tsx), and deleted `AdminPage.tsx`, `AdminPortal.tsx`, `AdminRoute.tsx`, and `client/src/components/admin/*`.
 
 ## [1.9.0] - 2026-11-08
@@ -40,14 +46,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.8.0] - 2026-10-31
 
 ### Added
-- **Interactive Match Sub Scheduler, Multi-Player Swaps & "Everyone Rests Once" Rule** ([#39](https://github.com/rossdevereux/team-organiser/issues/39)):
+- **Interactive Match Sub Scheduler, Multi-Player Swaps & "Everyone Rests Once" Rule** ([#39](https://github.com/rossdevereux/subshuffle/issues/39)):
   - Added `SubsPerWindowOption` (`'auto' | 'all_bench' | number`) and `SuggestedSubsOptions` (`subsPerWindow`, `ensureEveryoneSubbedOnce`) to [`server/src/types.ts`](server/src/types.ts) and [`client/src/types.ts`](client/src/types.ts).
   - Enhanced `InMatchTracker`, `findBestOutgoingPitchPlayer`, and `generateSuggestedSubstitutions` in [`rotationService.ts`](server/src/services/rotationService.ts) to support configurable swap counts per window (`Auto`, `1`, `2`, `3`, `All Bench`) and the **Ensure everyone is a sub at least once** (`ensureEveryoneSubbedOnce`) invariant that rotates all non-fixed outfield starters onto the bench before any player is subbed off twice.
   - Updated `filterActivePlannedInGameSubs` and `calculateMatchStats` in [`rotationService.ts`](server/src/services/rotationService.ts) and the `stats` `useMemo` in [`MatchdayContext.tsx`](client/src/context/MatchdayContext.tsx) to chronologically simulate multi-window `plannedInGameSubs` within the same period and compute exact player stints.
   - Upgraded [`SuggestedSubsModal.tsx`](client/src/components/SuggestedSubsModal.tsx) with **Subs / Window** pills, the **Ensure everyone is a sub at least once** toggle, an **Apply Plan to Match Schedule** button (which saves multi-window plans to `plannedInGameSubs` and carries end-of-period lineups forward across breaks), and an interactive custom sub scheduler.
   - Upgraded [`LiveMatchModal.tsx`](client/src/components/LiveMatchModal.tsx) so coaches can view multi-window scheduled substitutions, add new scheduled substitutions mid-match via **+ Schedule Sub**, or remove individual scheduled subs directly on the touchline.
   - Added unit tests in [`rotationService.test.ts`](server/src/tests/rotationService.test.ts) verifying `subsPerWindow`, `ensureEveryoneSubbedOnce`, and multi-window `calculateMatchStats` calculation.
-- **Auto-Stop Match Period Timer at Period Duration & Stoppage Time Controls** ([#40](https://github.com/rossdevereux/team-organiser/issues/40)):
+- **Auto-Stop Match Period Timer at Period Duration & Stoppage Time Controls** ([#40](https://github.com/rossdevereux/subshuffle/issues/40)):
   - Added `stoppageSeconds` to [`LiveMatchPeriodTimer`](server/src/types.ts) and implemented [`clampLiveMatchStateTimers`](server/src/services/rotationService.ts) in `rotationService.ts` and [`api.ts`](server/src/routes/api.ts) (`PUT /api/fixtures/:id/live-state` and `GET /api/fixtures/:id/live-status`) to automatically stop running timers at `periodDurationMinutes` (plus optional stoppage time) and prevent runaway clocks when a match tab is closed.
   - Updated [`LiveMatchModal.tsx`](client/src/components/LiveMatchModal.tsx) to clamp `elapsedSeconds` at `periodDurationSeconds`, sound the referee whistle and persist `isRunning: false` when a period completes, and display a **Period Complete** banner with 1-tap **Go to Period {N+1}** / **Complete Match** actions alongside **+1m Stoppage** and **+3m Stoppage** extensions.
   - Added unit tests in [`rotationService.test.ts`](server/src/tests/rotationService.test.ts) verifying runaway clock clamping and stoppage time extensions.
@@ -59,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.7.3] - 2026-10-31
 
 ### Fixed
-- **Exclude Rested Players & Reconcile Scheduled Mid-Game Rolling Substitutions on Squad Updates** ([#38](https://github.com/rossdevereux/team-organiser/issues/38)):
+- **Exclude Rested Players & Reconcile Scheduled Mid-Game Rolling Substitutions on Squad Updates** ([#38](https://github.com/rossdevereux/subshuffle/issues/38)):
   - Added `filterActivePlannedInGameSubs`, `buildPlannedInGameSubs`, and `reconcileMatchSquadPlannedSubs` in [`rotationService.ts`](server/src/services/rotationService.ts) and wired server-side reconciliation into `PUT /api/fixtures/:id/squad` ([`api.ts`](server/src/routes/api.ts)), `rebalanceRemainingPeriods`, `calculateMatchStats`, `generateSuggestedSubstitutions`, and `generateWhatsAppAnnouncement`.
   - Updated `updateMatchSquad`, `commitSquadUpdate`, `replaceSquadPlayer`, and `resetMatchSheet` in [`MatchdayContext.tsx`](client/src/context/MatchdayContext.tsx) to immediately sanitize and reconcile `plannedInGameSubs` when players are moved to Rested, replaced, or promoted from the bench onto the pitch.
   - Updated [`LiveMatchModal.tsx`](client/src/components/LiveMatchModal.tsx) (`periodPlannedSubs`, `validSuggestedChanges`, and the automatic whistle alert `useEffect`) to strictly filter out any rested or deselected players and verify that `playerOutId` is currently on the pitch and `playerInId` is currently on the bench.
@@ -80,7 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Warm-Instance Auth & Claims Optimization ([`auth.ts`](server/src/middleware/auth.ts), [`claims.ts`](server/src/auth/claims.ts), [`api.ts`](server/src/routes/api.ts), [`index.ts`](server/src/index.ts)):** Added `bootstrappedOwnerUids` warm-instance cache to prevent redundant `setCustomUserClaims` network calls, parallelized user subscription enrichment via `Promise.all` in `listAllUsersWithClaims()`, moved `getAuth` to top-level static import in `api.ts`, and moved `import 'dotenv/config'` to the top of `index.ts` with an `.unref()`ed shutdown timer.
 
 ### Fixed
-- **Forward-Looking Pitch & Bench State Continuity in Suggested Substitutions** ([#37](https://github.com/rossdevereux/team-organiser/issues/37)):
+- **Forward-Looking Pitch & Bench State Continuity in Suggested Substitutions** ([#37](https://github.com/rossdevereux/subshuffle/issues/37)):
   - Fixed a bug in `generateSuggestedSubstitutions` ([`rotationService.ts`](server/src/services/rotationService.ts)) where crossing into Period 2+ reset `isOnPitch` and `currentPosition` from the static period baseline lineup, causing players subbed ON in Period 1 (e.g. at Minute `20'`) to be suggested to come ON again in Period 2 (e.g. at Minute `35'`) while already on the pitch, or players subbed OFF in Period 1 to be suggested to come OFF again while already on the bench.
   - Seeded `initSquadTracker()` once from Period 1's kick-off lineup (`squad.lineupsByPeriod[0]`) and maintained continuous forward-looking pitch/bench state, `minutesThisMatch`, and `stintMinutes` across all periods and all three strategies (*Equal Game Time & Unused Subs*, *Positional Match*, and *Rolling Single Sub*).
   - Added state-continuity regression test in [`rotationService.test.ts`](server/src/tests/rotationService.test.ts) verifying that no player is ever suggested to come ON while already on the pitch or come OFF while already on the bench across any substitution window.
@@ -94,20 +100,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.7.0] - 2026-10-31
 
 ### Added
-- **In-App Support Modal with Automated Diagnostic Telemetry & Jira Service Management (JSM) Integration** ([#36](https://github.com/rossdevereux/team-organiser/issues/36)):
+- **In-App Support Modal with Automated Diagnostic Telemetry & Jira Service Management (JSM) Integration** ([#36](https://github.com/rossdevereux/subshuffle/issues/36)):
   - Built [`server/src/routes/support.ts`](server/src/routes/support.ts) exposing `POST /api/support/ticket` (secured with `requireAuth`) to dispatch categorized coach feedback and bug reports to Jira Cloud REST API v3 (`https://subshuffle.atlassian.net/rest/api/3/issue`) in the `OPS` service project.
   - Mapped client categories directly to `OPS` Issue Type IDs (`bug` -> `10002` [Problem], `feature` -> `10003` [Suggestion], `question` -> `10001` [Question]) and formatted descriptions using Atlassian Document Format (ADF) combining coach narrative paragraphs with a `Diagnostic Telemetry` JSON `codeBlock`.
   - Created [`SupportTicketModal.tsx`](client/src/components/support/SupportTicketModal.tsx) with responsive bottom-sheet/dialog layout (`max-h-[92dvh] flex flex-col`, sticky header and footer), category selector cards, validation alerts, silent background telemetry collection (`SupportTelemetry`), and confirmation view displaying the created `OPS-XX` ticket reference.
   - Added [`AppErrorBoundary.tsx`](client/src/components/support/AppErrorBoundary.tsx) and wired 3 global navigation entry points: User Profile Dropdown ([`UserMenu.tsx`](client/src/components/UserMenu.tsx)), Application Footer next to the version badge ([`RootLayout.tsx`](client/src/RootLayout.tsx)), and unexpected error boundary/banner recovery screens.
   - Added [`server/.env.example`](server/.env.example), [`scripts/setup-jira-secrets.ps1`](scripts/setup-jira-secrets.ps1), and Cloud Run Secret Manager bindings in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) for `JIRA_HOST`, `JIRA_USER_EMAIL`, and `JIRA_API_TOKEN`.
   - Added unit test suite in [`support.test.ts`](server/src/tests/support.test.ts) validating category-to-IssueType mapping, ADF document structure, Basic Auth headers, simulated mode fallback, and 429/502 error handling.
-- **Staging Environment (`beta.subshuffle.com`), Multi-Site Firebase Hosting & Dual-Branch CI/CD Pipeline** ([#33](https://github.com/rossdevereux/team-organiser/issues/33)):
-  - Configured multi-site Firebase Hosting targets (`live` -> `team-organiser-prod` and `beta` -> `subshuffle-beta`) in [`.firebaserc`](.firebaserc) and [`firebase.json`](firebase.json), routing `/api/**` rewrites to `team-organiser-api` (production) and `backend-api-beta` (staging) in `europe-west1`.
+- **Staging Environment (`beta.subshuffle.com`), Multi-Site Firebase Hosting & Dual-Branch CI/CD Pipeline** ([#33](https://github.com/rossdevereux/subshuffle/issues/33)):
+  - Configured multi-site Firebase Hosting targets (`live` -> `team-organiser-prod` and `beta` -> `subshuffle-beta`) in [`.firebaserc`](.firebaserc) and [`firebase.json`](firebase.json), routing `/api/**` rewrites to `subshuffle-api` (production) and `backend-api-beta` (staging) in `europe-west1`.
   - Provisioned the `backend-api-beta` Cloud Run service in `europe-west1` (zero-idle scaling from 0 to 2 instances) and whitelisted `beta.subshuffle.com`, `subshuffle-beta.web.app`, and `subshuffle-beta.firebaseapp.com` in Firebase Authentication Authorized Domains.
-  - Refactored [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) into a dual-branch CI/CD pipeline (`main` and `beta`) with a `set-env` resolution job that automatically targets `backend-api-beta` + `subshuffle-beta` on `beta` pushes and `team-organiser-api` + `live` on `main` pushes.
+  - Refactored [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) into a dual-branch CI/CD pipeline (`main` and `beta`) with a `set-env` resolution job that automatically targets `backend-api-beta` + `subshuffle-beta` on `beta` pushes and `subshuffle-api` + `live` on `main` pushes.
   - Added a visual **Beta Test** environment badge in [`Navbar.tsx`](client/src/components/Navbar.tsx) when running on the `beta` or `localhost` origin.
   - Added automated pipeline configuration test suite in [`stagingPipeline.test.ts`](server/src/tests/stagingPipeline.test.ts).
-- **Resilient Stripe Webhook Processing, Out-of-Order Reconciliation, User Payment History & 24-Month Firestore TTL** ([#35](https://github.com/rossdevereux/team-organiser/issues/35)):
+- **Resilient Stripe Webhook Processing, Out-of-Order Reconciliation, User Payment History & 24-Month Firestore TTL** ([#35](https://github.com/rossdevereux/subshuffle/issues/35)):
   - Implemented idempotent Stripe webhook ingestion using a `stripe_events/{eventId}` collection with a 30-day Firestore `Timestamp` TTL (`hasProcessedStripeEvent` and `recordProcessedStripeEvent` in [`storage.ts`](server/src/db/storage.ts)).
   - Added timestamp-based webhook ordering guard (`lastWebhookCreated`) in [`billing.ts`](server/src/routes/billing.ts) to detect out-of-order/stale webhook deliveries (`event.created < lastWebhookCreated`) and reconcile authoritative status via `stripe.subscriptions.retrieve()`.
   - Built per-user payment ledger (`users/{uid}/payments/{invoiceId}`) recording `invoice.payment_succeeded` and `invoice.payment_failed` events with card brand/last4 metadata, invoice PDF/hosted links, and a 24-month native Firestore `Timestamp` TTL (`expireAt`).
@@ -117,7 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Persist Cloud Run Stripe Secrets Across Deployments**:
-  - Added [`scripts/setup-stripe-secrets.ps1`](scripts/setup-stripe-secrets.ps1) to provision `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in Google Cloud Secret Manager (without trailing CRLF newlines), grant Secret Manager IAM access to the Cloud Run runtime service account, and mount the secrets onto `team-organiser-api`.
+  - Added [`scripts/setup-stripe-secrets.ps1`](scripts/setup-stripe-secrets.ps1) to provision `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in Google Cloud Secret Manager (without trailing CRLF newlines), grant Secret Manager IAM access to the Cloud Run runtime service account, and mount the secrets onto `subshuffle-api`.
   - Updated [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) and [`README.md`](README.md) to use `--update-env-vars NODE_ENV=production` and `--update-secrets` instead of `--set-env-vars`, preventing deployments from wiping existing Cloud Run environment variables.
 
 ## [1.6.1] - 2026-10-25
@@ -132,7 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.6.0] - 2026-10-25
 
 ### Added
-- **Interactive New Coach Setup Wizard & Guided Spotlight Tour** ([#28](https://github.com/rossdevereux/team-organiser/issues/28)):
+- **Interactive New Coach Setup Wizard & Guided Spotlight Tour** ([#28](https://github.com/rossdevereux/subshuffle/issues/28)):
   - Built an interactive 3-step setup modal wizard ([`OnboardingWizardModal.tsx`](client/src/components/onboarding/OnboardingWizardModal.tsx)) guiding newly registered coaches through club format configuration, squad roster setup, and their first weekend fixture.
   - Implemented 1-tap FA youth format presets (5v5, 7v7 [default], 9v9) embedding FA rules, default period counts, period durations, and 50%+ equal game time compliance thresholds.
   - Provided 3 squad kick-start pathways: 1-click "Try with Demo Players" (instant 10-player FA-balanced squad), manual quick-add form (name, number, broad position), and CSV file import drop.
@@ -143,7 +149,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added automated unit test suite ([`server/src/tests/onboarding.test.ts`](server/src/tests/onboarding.test.ts)) and Playwright E2E suite ([`e2e/onboarding-wizard.spec.ts`](e2e/onboarding-wizard.spec.ts)) covering multi-step completion, spotlight tour progression, replay shortcuts, and mobile viewports ($390\text{px}$).
 
 ### Fixed
-- **Desktop Header Breadcrumb Overlap, Tab Label Concatenation & Sub-1440px Layout Congestion** ([#32](https://github.com/rossdevereux/team-organiser/issues/32)):
+- **Desktop Header Breadcrumb Overlap, Tab Label Concatenation & Sub-1440px Layout Congestion** ([#32](https://github.com/rossdevereux/subshuffle/issues/32)):
   - Fixed tab label concatenation bug where period count prefix merged into tab title (e.g. `2-HalfRotation Matrix`), standardizing the secondary navigation tab label to clean, uniform **Rotation Matrix** across all match formats and localized languages.
   - Resolved breadcrumb overlap and layout collisions on intermediate laptop displays ($1024\text{px}$, $1280\text{px}$, $1366\text{px}$) by collapsing secondary action button text (`Live Match` and `Share / Export` labels) into touch-friendly icon buttons on viewports $< 1536\text{px}$ (`< 2xl`), while expanding full text on widescreen monitors.
   - Hidden redundant touchline context switcher (`ContextSwitcher`) on intermediate viewports ($< 1536\text{px}$), freeing over $120\text{px}$ in the header.
@@ -151,7 +157,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Hardened breadcrumb pill layout in [`Navbar.tsx`](client/src/components/Navbar.tsx) with explicit `shrink-0` segment wrappers, responsive width bounds (`max-w-[160px] xs:max-w-[200px] sm:max-w-[260px] md:max-w-[340px] lg:max-w-[400px] xl:max-w-[480px] 2xl:max-w-[560px]`), and text truncation constraints, mathematically eliminating internal token overlap between team and fixture selectors.
   - Expanded top navbar container max-width on widescreen monitors (`2xl:max-w-[1700px]`), providing comfortable spacing ($> 400\text{px}$) between the breadcrumb and action group on $1920\text{px}$ HD displays.
   - Added dedicated Playwright E2E test suite in [`desktop-header-navigation.spec.ts`](e2e/desktop-header-navigation.spec.ts) validating tab label uniformity, zero breadcrumb-to-action collisions across laptop and desktop viewports ($1024\times 768$, $1280\times 800$, $1366\times 768$, $1920\times 1080$), graceful text truncation on long club names, and smooth secondary tab bar scrolling.
-- **Universal Mobile Layout Hardening, Modal Scroll Containment & Touchline Ergonomics** ([#31](https://github.com/rossdevereux/team-organiser/issues/31)):
+- **Universal Mobile Layout Hardening, Modal Scroll Containment & Touchline Ergonomics** ([#31](https://github.com/rossdevereux/subshuffle/issues/31)):
   - Resolved nested scrollbars, timeline minute circle gutter clipping, strategy tabs truncation, header title collisions, and sticky footer occlusion in [`SuggestedSubsModal.tsx`](client/src/components/SuggestedSubsModal.tsx), giving the scroll container dedicated clearance (`pb-32 sm:pb-8`) and single scroll containment (`overscroll-contain`).
   - Standardized native bottom-sheet modal ergonomics (`items-end sm:items-center p-0 sm:p-4`, `rounded-t-3xl sm:rounded-3xl max-h-[92dvh] sm:max-h-[92vh]`, `pb-28 sm:pb-6`) and touchline accessibility touch targets ($\ge 44\text{px}$) across [`Modal.tsx`](client/src/design-system/components/Modal.tsx), [`ScoreScorersModal.tsx`](client/src/components/ScoreScorersModal.tsx), [`MatchdaySelectorModal.tsx`](client/src/components/MatchdaySelectorModal.tsx), [`PlayerFormModal.tsx`](client/src/components/squad/PlayerFormModal.tsx), [`LiveMatchModal.tsx`](client/src/components/LiveMatchModal.tsx), and [`AuthModal.tsx`](client/src/components/auth/AuthModal.tsx).
   - Hardened the tactical 2D pitch canvas in [`PitchView.tsx`](client/src/components/PitchView.tsx) with a minimum height (`min-h-[380px]`) and responsive token card constraints (`min-w-[76px] sm:min-w-[92px] max-w-[88px] sm:max-w-[108px]`) with safe player name truncation, eliminating node overlaps on $360\text{px}$ to $375\text{px}$ mobile viewports.
@@ -162,7 +168,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.5.2] - 2026-10-25
 
 ### Fixed
-- **Mobile Header & Secondary Tab Navigation Viewport Width Overflow** ([#30](https://github.com/rossdevereux/team-organiser/issues/30)):
+- **Mobile Header & Secondary Tab Navigation Viewport Width Overflow** ([#30](https://github.com/rossdevereux/subshuffle/issues/30)):
   - Resolved viewport overflow, horizontal wobble, and off-screen user avatar truncation on mobile screens ($\le 768\text{px}$) in [`Navbar.tsx`](client/src/components/Navbar.tsx).
   - Collapsed the header team/fixture breadcrumb on `< md` viewports to display only the active team name with truncation (`max-w-[100px] xs:max-w-[130px] sm:max-w-[160px]`), hiding the fixture segment and breadcrumb arrow separator to leave match details for the match banner.
   - Refactored [`TrialBadge.tsx`](client/src/components/TrialBadge.tsx) across all subscription states (`active`, `past_due`, `expired`, `lifetime`, `trial`) to render as compact icon-only badges on `< sm` viewports while preserving complete tooltips, tap actions, and desktop full labels.
@@ -173,7 +179,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.5.1] - 2026-10-24
 
 ### Fixed
-- **Season Presentation & Awards Sheet Print Preview Dark Page Removal** ([#26](https://github.com/rossdevereux/team-organiser/issues/26)):
+- **Season Presentation & Awards Sheet Print Preview Dark Page Removal** ([#26](https://github.com/rossdevereux/subshuffle/issues/26)):
   - Fixed an issue where the print/PDF preview generated an initial full-height solid dark page before the white presentation sheet.
   - Added `@media print` rules in [`index.css`](client/src/index.css) to completely hide `#root` (`display: none !important`) when official portalled print modals (`#awards-sheet-modal`, `.official-print-modal`) are active, eliminating unwanted DOM heights, screen-layout wrappers, and dark background fills.
   - Portalled both [`PrintPresentationCard.tsx`](client/src/components/PrintPresentationCard.tsx) and [`PrintMatchSheet.tsx`](client/src/components/PrintMatchSheet.tsx) to `document.body` and set body isolation classes (`print-awards-open`, `print-match-open`) during print preview.
@@ -183,7 +189,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.5.0] - 2026-10-24
 
 ### Added
-- **Continuous Lineups Across Period Breaks & In-Game Rolling Substitutions** ([#25](https://github.com/rossdevereux/team-organiser/issues/25)):
+- **Continuous Lineups Across Period Breaks & In-Game Rolling Substitutions** ([#25](https://github.com/rossdevereux/subshuffle/issues/25)):
   - Added `subTimingMode` (`'at_breaks' | 'in_game_rolling' | 'hybrid'`), `preserveLineupAcrossBreaks`, and `midPeriodSubIntervalMinutes` settings to `TeamSettings` and `Fixture`.
   - Configurable rotation timing controls in [`SettingsModal.tsx`](client/src/components/SettingsModal.tsx), squad creation in [`TeamManager.tsx`](client/src/components/TeamManager.tsx), and per-fixture overrides in [`EditFixtureModal.tsx`](client/src/components/EditFixtureModal.tsx) with multilingual translations.
   - Lineup continuity algorithm in [`rotationService.ts`](server/src/services/rotationService.ts) ensuring that when `preserveLineupAcrossBreaks` is active, active pitch players are carried across period boundaries rather than shuffling players off the pitch at breaks.
@@ -193,12 +199,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Official printable referee match sheet update in [`PrintMatchSheet.tsx`](client/src/components/PrintMatchSheet.tsx) displaying a dedicated Planned Mid-Period Rolling Substitutions schedule with pro-rated playing times.
 
 ### Fixed
-- **Season Presentation & Awards Sheet Print & PDF Export** ([#26](https://github.com/rossdevereux/team-organiser/issues/26)):
+- **Season Presentation & Awards Sheet Print & PDF Export** ([#26](https://github.com/rossdevereux/subshuffle/issues/26)):
   - Fixed blank/black page rendering when clicking "Print / Save PDF" on the Season Presentation & Awards Sheet dialog.
   - Portalled [`PrintPresentationCard.tsx`](client/src/components/PrintPresentationCard.tsx) directly to `document.body` with `id="awards-sheet-modal"` to prevent ancestor overflow and layout clipping during print.
   - Implemented print-specific `@media print` rules in [`index.css`](client/src/index.css) forcing pure white background, dark high-contrast slate typography (`#0f172a`), hairline card borders (`#cbd5e1`), and page break avoidance.
   - Hid screen action buttons (`Print / Save PDF` and close `✕`) via `print:hidden` and `no-print` classes.
-- **Team & Match Settings Viewport Overflow & Sticky Action Footer** ([#29](https://github.com/rossdevereux/team-organiser/issues/29)):
+- **Team & Match Settings Viewport Overflow & Sticky Action Footer** ([#29](https://github.com/rossdevereux/subshuffle/issues/29)):
   - Refactored [`SettingsModal.tsx`](client/src/components/SettingsModal.tsx) into a 3-part flexbox layout with fixed header, scrollable body (`overflow-y-auto`, `overscroll-contain`), and sticky action footer (`bg-slate-900/95`, `backdrop-blur-sm`).
   - Added `max-h-[90vh]` and `flex flex-col` constraints to ensure the modal never overflows past the screen fold on smaller screens or mobile viewports.
   - Pinned "Save Changes" and "Cancel" buttons in the sticky footer connected to the settings form via HTML5 `form="settings-form"`, ensuring save actions are always accessible without scrolling.
@@ -207,7 +213,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.4.0] - 2026-10-24
 
 ### Added
-- **Firebase Performance Monitoring & Custom Matchday Workflows Traces** ([#24](https://github.com/rossdevereux/team-organiser/issues/24)):
+- **Firebase Performance Monitoring & Custom Matchday Workflows Traces** ([#24](https://github.com/rossdevereux/subshuffle/issues/24)):
   - Initialized Firebase Performance SDK (`getPerformance`, `trace`) safely in [`firebase.ts`](client/src/firebase.ts) with environment gating (`PROD || VITE_ENABLE_PERF === 'true'`) ensuring zero overhead in test, SSR, and development environments.
   - Automatic collection of Core Web Vitals (FCP, FID, LCP, CLS, INP) and `/api/**` network request durations via Firebase Performance browser instrumentation.
   - Created performance utility [`performance.ts`](client/src/utils/performance.ts) providing `startTrace` and `runWithTrace` helpers with custom attributes, metrics, and developer console benchmarking when `VITE_DEBUG_PERF` is active.
@@ -217,7 +223,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `roster_csv_parse`: Benchmarks CSV upload parsing with `parsed_player_count` metric in [`CSVImportModal.tsx`](client/src/components/squad/CSVImportModal.tsx).
     - `live_sub_execution`: Benchmarks tactical in-game sideline substitutions and live event logging in [`MatchdayContext.tsx`](client/src/context/MatchdayContext.tsx).
     - `live_emergency_rebalance`: Benchmarks emergency mid-match player departure call-offs and remaining period rebalancing in [`MatchdayContext.tsx`](client/src/context/MatchdayContext.tsx).
-- **Firebase Google Analytics (GA4) Integration & Custom Matchday Telemetry** ([#23](https://github.com/rossdevereux/team-organiser/issues/23)):
+- **Firebase Google Analytics (GA4) Integration & Custom Matchday Telemetry** ([#23](https://github.com/rossdevereux/subshuffle/issues/23)):
   - Integrated Firebase Analytics SDK (`getAnalytics`, `isSupported`) safely with environment gating (`VITE_FIREBASE_MEASUREMENT_ID`, `VITE_ENABLE_ANALYTICS`, `VITE_DEBUG_ANALYTICS`) in [`firebase.ts`](client/src/firebase.ts) to guarantee zero overhead and zero errors in test/offline/headless environments.
   - Implemented strongly typed analytics event dispatcher [`analytics.ts`](client/src/utils/analytics.ts) with full type definitions for core grassroots coaching events:
     - `lineup_auto_balanced`: Tracks auto-rotation engine runs across period counts, durations, and squad sizes in [`RootLayout.tsx`](client/src/RootLayout.tsx).
@@ -250,7 +256,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.0] - 2026-10-24
 
 ### Added
-- **Comprehensive Team Dashboard, Season Leaderboards & Presentation Awards** ([#17](https://github.com/rossdevereux/team-organiser/issues/17)):
+- **Comprehensive Team Dashboard, Season Leaderboards & Presentation Awards** ([#17](https://github.com/rossdevereux/subshuffle/issues/17)):
   - Built backend season aggregation service [`server/src/services/dashboardService.ts`](server/src/services/dashboardService.ts) calculating season KPIs (W/D/L record, win rate, goals for/against/diff, clean sheet rate, squad equity score, attendance rate), Golden Boot leaderboard, Player of the Match honors, defensive wall contributions, positional versatility distributions, designated GK coverage, and milestone badges.
   - Implemented secure API endpoint `GET /api/teams/:id/dashboard-summary` with team access control, caching in [`server/src/db/storage.ts`](server/src/db/storage.ts), and cache invalidation on player and fixture mutations.
   - Created interactive frontend dashboard [`TeamDashboardView.tsx`](client/src/components/TeamDashboardView.tsx) and page [`TeamDashboardPage.tsx`](client/src/pages/TeamDashboardPage.tsx) featuring responsive KPI ribbons, Golden Boot goal scoring leaderboards with hat-trick detection, Player of the Match tracker, The Wall defensive recognition (crediting clean sheets on pitch and defensive minutes equally alongside attackers), and positional versatility breakdown with multi-segment stacked progress bars.
@@ -265,7 +271,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.0] - 2026-10-24
 
 ### Added
-- **Comprehensive Coach User Guide & In-App Documentation Viewer** ([#22](https://github.com/rossdevereux/team-organiser/issues/22)):
+- **Comprehensive Coach User Guide & In-App Documentation Viewer** ([#22](https://github.com/rossdevereux/subshuffle/issues/22)):
   - Authored a comprehensive grassroots coach handbook [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) covering club setup, squad management, FA match rules, auto-rotation engines, live match stopwatches, mid-match emergency rebalancing, post-match fair-play analytics, administration roles, and pricing.
   - Implemented responsive in-app documentation reader [`GuidePage.tsx`](client/src/pages/GuidePage.tsx) accessible at `/guide` with raw markdown import, sticky Table of Contents sidebar, real-time topic search filter, heading anchor resolution, and print/share actions.
   - Integrated `/guide` route into [`router.tsx`](client/src/router.tsx), public routes whitelist in [`RootLayout.tsx`](client/src/RootLayout.tsx), top navigation in [`Navbar.tsx`](client/src/components/Navbar.tsx), public navigation in [`PublicNav.tsx`](client/src/components/PublicNav.tsx), and user profile dropdown in [`UserMenu.tsx`](client/src/components/UserMenu.tsx).
@@ -277,7 +283,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated entitlement check `isSubscriptionActive` and fast path claims verification in [`server/src/middleware/requireActiveSubscription.ts`](server/src/middleware/requireActiveSubscription.ts) granting perpetual write access with zero lockout or trial expiry.
   - Enhanced Admin Portal [`AdminUsersTab.tsx`](client/src/components/admin/AdminUsersTab.tsx) with a "Free for Life" KPI counter, subscription status pills, and dropdown selectors to update user subscriptions on the fly.
   - Added `👑 Free for Life` presentation badges and banners across [`TrialBadge.tsx`](client/src/components/TrialBadge.tsx), [`PaywallModal.tsx`](client/src/components/PaywallModal.tsx), and [`SettingsModal.tsx`](client/src/components/SettingsModal.tsx).
-- **Free Trial Lifecycle, Subscription Paywall & Stripe Billing Integration** ([#6](https://github.com/rossdevereux/team-organiser/issues/6)):
+- **Free Trial Lifecycle, Subscription Paywall & Stripe Billing Integration** ([#6](https://github.com/rossdevereux/subshuffle/issues/6)):
   - Added `UserSubscription`, `SubscriptionTier`, and `SubscriptionStatus` data models across [`shared/types.ts`](shared/types.ts), [`server/src/types.ts`](server/src/types.ts), and [`client/src/types.ts`](client/src/types.ts).
   - Implemented automatic credit-card-free 30-day trial provisioning upon registration in [`server/src/db/storage.ts`](server/src/db/storage.ts) with zero-lookup Firebase custom claims syncing (`subscriptionStatus`, `subscriptionTier`) in [`server/src/auth/claims.ts`](server/src/auth/claims.ts).
   - Built Stripe billing router [`server/src/routes/billing.ts`](server/src/routes/billing.ts) supporting Stripe Checkout session generation (`POST /api/billing/create-checkout-session`), Stripe Customer Portal sessions (`POST /api/billing/create-portal-session`), subscription status retrieval (`GET /api/billing/subscription`), and raw-body Stripe webhook signature verification (`POST /api/billing/webhook`) handling checkout completions, plan updates, deletions, and payment failures.
@@ -296,7 +302,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.9] - 2026-10-24
 
 ### Added
-- **Dynamic Sub Rebalancer for Mid-Match Injuries & Early Departures** ([#18](https://github.com/rossdevereux/team-organiser/issues/18)):
+- **Dynamic Sub Rebalancer for Mid-Match Injuries & Early Departures** ([#18](https://github.com/rossdevereux/subshuffle/issues/18)):
   - Added `EarlyDeparture` model and `earlyDepartures?: EarlyDeparture[]` on `Fixture` across [`shared/types.ts`](shared/types.ts), [`server/src/types.ts`](server/src/types.ts), and [`client/src/types.ts`](client/src/types.ts) tracking exact period, minute, match minute, reason, replacement sub, and pro-rated minutes.
   - Implemented dynamic sub rebalancer engine `rebalanceRemainingPeriods(...)` in [`server/src/services/rotationService.ts`](server/src/services/rotationService.ts) to instantly swap injured on-pitch players with a selected bench sub, lock departed players out of all subsequent periods, and redistribute remaining quarters/halves across active squad members prioritizing lowest-minute players to maintain the FA 50%+ rule.
   - Added dedicated endpoint `POST /api/fixtures/:id/early-departure` in [`server/src/routes/api.ts`](server/src/routes/api.ts) persisting early departure records, rebalanced squads, and timestamped audit logs in `liveMatchState.subLog`.
@@ -314,7 +320,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `.catch(...)` error handlers on all `cache.put(...)` invocations and incremented cache storage to `subshuffle-offline-v4`.
 
 ### Changed
-- **Optimised Live Match Status Polling & Heartbeat** ([#16](https://github.com/rossdevereux/team-organiser/issues/16)):
+- **Optimised Live Match Status Polling & Heartbeat** ([#16](https://github.com/rossdevereux/subshuffle/issues/16)):
   - Added minimal runtime status endpoint `GET /api/fixtures/:id/live-status` in [`server/src/routes/api.ts`](server/src/routes/api.ts) delivering match state (`status`, `period`, `homeScore`, `awayScore`, `periodStartedAt`, `version`, `updatedAt`) in under 150 bytes uncompressed payload size.
   - Implemented HTTP conditional request handling via `ETag` (`W/"<id>-<version>-<timestamp>"`) returning `304 Not Modified` with empty body (0 bytes) whenever fixture state has not mutated.
   - Added Edge CDN and browser caching header `Cache-Control: public, max-age=1, s-maxage=3, stale-while-revalidate=2` and exposed `ETag` via CORS in [`server/src/index.ts`](server/src/index.ts).
@@ -327,7 +333,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.7] - 2026-10-18
 
 ### Fixed
-- **Fair Play & Minutes Cumulative Match Tracking** ([#15](https://github.com/rossdevereux/team-organiser/issues/15)):
+- **Fair Play & Minutes Cumulative Match Tracking** ([#15](https://github.com/rossdevereux/subshuffle/issues/15)):
   - Added `creditedMinutes?: Record<string, number>` to `Fixture` across [`shared/types.ts`](shared/types.ts), [`server/src/types.ts`](server/src/types.ts), and [`client/src/types.ts`](client/src/types.ts) to track credited match minutes idempotently per player and prevent duplicate increments.
   - Implemented `applyFixtureMinutes(fixture)` in [`server/src/db/storage.ts`](server/src/db/storage.ts) to automatically calculate minute and appearance deltas when fixtures are saved via `updatePostMatchRecording`, `updateFixtureScore`, `updateFixture`, or removed via `deleteFixture`, updating each player's `totalMinutesPlayed` and `matchesPlayed` in storage.
   - Updated API endpoints `PUT /api/fixtures/:id/post-match` and `PUT /api/fixtures/:id/score` in [`server/src/routes/api.ts`](server/src/routes/api.ts) to return updated player records (`updatedPlayers`).
@@ -338,7 +344,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.6] - 2026-10-18
 
 ### Added
-- **Live Match State Machine & Synchronised Stopwatch Persistence** ([#14](https://github.com/rossdevereux/team-organiser/issues/14)):
+- **Live Match State Machine & Synchronised Stopwatch Persistence** ([#14](https://github.com/rossdevereux/subshuffle/issues/14)):
   - Added `LiveMatchState`, `LiveMatchPeriodTimer`, and `LiveMatchSubLogEntry` data models on `Fixture` in [`client/src/types.ts`](client/src/types.ts) and [`server/src/types.ts`](server/src/types.ts).
   - Implemented `updateLiveMatchState(fixtureId, liveMatchState)` in [`server/src/db/storage.ts`](server/src/db/storage.ts) and registered API endpoint `PUT /api/fixtures/:id/live-state` in [`server/src/routes/api.ts`](server/src/routes/api.ts), persisting current period, startedAt timestamp, accumulated elapsed seconds, and in-match substitution logs to Firestore and local storage.
   - Re-architected [`LiveMatchModal.tsx`](client/src/components/LiveMatchModal.tsx) and [`MatchdayContext.tsx`](client/src/context/MatchdayContext.tsx) to deterministically derive live elapsed time from `startedAt` timestamps across all devices, ensuring resilience against page reloads, browser app switching, or device shutdowns pitchside.
@@ -360,7 +366,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.4] - 2026-10-18
 
 ### Added
-- **Application-Wide Internationalisation Coverage (i18n)** ([#7](https://github.com/rossdevereux/team-organiser/issues/7)):
+- **Application-Wide Internationalisation Coverage (i18n)** ([#7](https://github.com/rossdevereux/subshuffle/issues/7)):
   - Expanded comprehensive locale translation schemas across English (`en`), Spanish (`es`), French (`fr`), and German (`de`) in [`client/src/locales/`](client/src/locales/).
   - Wired full translation dictionaries (`t(...)`) into all core matchday, squad, and public views:
     - Tactical Pitch & Substitutes: [`PitchView.tsx`](client/src/components/PitchView.tsx) and [`BenchView.tsx`](client/src/components/BenchView.tsx).
@@ -373,7 +379,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Modals & Pitchside Exports: [`WhatsAppExportModal.tsx`](client/src/components/WhatsAppExportModal.tsx), [`ScoreScorersModal.tsx`](client/src/components/ScoreScorersModal.tsx), [`SuggestedSubsModal.tsx`](client/src/components/SuggestedSubsModal.tsx), [`PrintMatchSheet.tsx`](client/src/components/PrintMatchSheet.tsx), and [`AuthModal.tsx`](client/src/components/auth/AuthModal.tsx).
 
 ### Fixed
-- **Multi-Team Data Isolation & Cross-Team Leakage Prevention** ([#13](https://github.com/rossdevereux/team-organiser/issues/13)):
+- **Multi-Team Data Isolation & Cross-Team Leakage Prevention** ([#13](https://github.com/rossdevereux/subshuffle/issues/13)):
   - Enforced mandatory `teamId: string` across client and server entity models for `Player` and `Fixture` in [`client/src/types.ts`](client/src/types.ts) and [`server/src/types.ts`](server/src/types.ts).
   - Updated backend API validation in [`server/src/routes/api.ts`](server/src/routes/api.ts) (`POST /api/players`, `POST /api/fixtures`, `POST /api/players/bulk`) to reject requests missing `teamId` with HTTP 400.
   - Hardened `GET /api/players` and `GET /api/fixtures` to filter strictly by `teamId`.
@@ -389,17 +395,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Technical SEO, Robots & Sitemap**:
-  - Added crawl-optimized [`robots.txt`](client/public/robots.txt) allowing public indexable routes (`/`, `/calculator`, `/features`, `/rules`) and disallowing internal authenticated matchday routes ([#11](https://github.com/rossdevereux/team-organiser/issues/11)).
-  - Generated XML sitemap [`sitemap.xml`](client/public/sitemap.xml) with public page priorities, change frequencies, and publication timestamps ([#11](https://github.com/rossdevereux/team-organiser/issues/11)).
+  - Added crawl-optimized [`robots.txt`](client/public/robots.txt) allowing public indexable routes (`/`, `/calculator`, `/features`, `/rules`) and disallowing internal authenticated matchday routes ([#11](https://github.com/rossdevereux/subshuffle/issues/11)).
+  - Generated XML sitemap [`sitemap.xml`](client/public/sitemap.xml) with public page priorities, change frequencies, and publication timestamps ([#11](https://github.com/rossdevereux/subshuffle/issues/11)).
   - Added Schema.org structured data (JSON-LD) for `SoftwareApplication` (SportsApplication with free tier definitions) and `FAQPage` in [`index.html`](client/index.html).
 - **Open Graph & Twitter Social Sharing Cards**:
-  - Integrated Open Graph (`og:*`) and Twitter Card (`summary_large_image`) metadata in [`index.html`](client/index.html) optimized for WhatsApp, iMessage, Facebook, and Twitter link unfurling ([#11](https://github.com/rossdevereux/team-organiser/issues/11)).
+  - Integrated Open Graph (`og:*`) and Twitter Card (`summary_large_image`) metadata in [`index.html`](client/index.html) optimized for WhatsApp, iMessage, Facebook, and Twitter link unfurling ([#11](https://github.com/rossdevereux/subshuffle/issues/11)).
   - Created 1200×630px social card preview image asset [`og-preview.png`](client/public/og-preview.png) and compressed mobile companion [`og-preview.jpg`](client/public/og-preview.jpg).
 - **Public Equal Playing Time & Sub Rotation Calculator (`/calculator`)**:
-  - Implemented client-side interactive rotation calculator [`CalculatorPage.tsx`](client/src/pages/CalculatorPage.tsx) supporting 5v5, 7v7, 9v9, and 11v11 formats, custom match durations, and quarter splits without requiring user sign-in ([#11](https://github.com/rossdevereux/team-organiser/issues/11)).
+  - Implemented client-side interactive rotation calculator [`CalculatorPage.tsx`](client/src/pages/CalculatorPage.tsx) supporting 5v5, 7v7, 9v9, and 11v11 formats, custom match durations, and quarter splits without requiring user sign-in ([#11](https://github.com/rossdevereux/subshuffle/issues/11)).
   - Added period-by-period rotation matrix simulation and one-click WhatsApp rotation summary export.
 - **Email/Password & Facebook Authentication**:
-  - Introduced unified multi-provider authentication dialog [`AuthModal.tsx`](client/src/components/auth/AuthModal.tsx) supporting Google Sign-In, Facebook Login, and Email/Password credentials with password confirmation and password reset dispatch ([#12](https://github.com/rossdevereux/team-organiser/issues/12)).
+  - Introduced unified multi-provider authentication dialog [`AuthModal.tsx`](client/src/components/auth/AuthModal.tsx) supporting Google Sign-In, Facebook Login, and Email/Password credentials with password confirmation and password reset dispatch ([#12](https://github.com/rossdevereux/subshuffle/issues/12)).
   - Implemented centralized authentication service [`auth.ts`](client/src/services/auth.ts) encapsulating `signInWithGoogle`, `signInWithFacebook`, `signInWithEmail`, `registerWithEmail`, and `sendPasswordReset` with coach-friendly error mapping and account collision handling (`auth/account-exists-with-different-credential`).
   - Exported configured `FacebookAuthProvider` with `email` and `public_profile` scopes in [`firebase.ts`](client/src/firebase.ts).
   - Integrated `AuthModal` into [`AuthButton.tsx`](client/src/components/AuthButton.tsx) and [`UserMenu.tsx`](client/src/components/UserMenu.tsx).
@@ -412,7 +418,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Production Domain Configuration**:
   - Configured production domain to `https://subshuffle.com` across canonical links, Open Graph, Twitter cards, Schema.org structured data, `robots.txt`, XML sitemap, and WhatsApp clipboard sharing links.
 - **Route Code Splitting & Core Web Vitals**:
-  - Configured `React.lazy()` route-level code splitting for authenticated dashboard pages in [`router.tsx`](client/src/router.tsx) with custom suspense loader ([#11](https://github.com/rossdevereux/team-organiser/issues/11)).
+  - Configured `React.lazy()` route-level code splitting for authenticated dashboard pages in [`router.tsx`](client/src/router.tsx) with custom suspense loader ([#11](https://github.com/rossdevereux/subshuffle/issues/11)).
   - Refactored manual chunk splitting in [`vite.config.ts`](client/vite.config.ts) for `markdown-vendor` and `i18n-vendor`, reducing core client index bundle from 656 KB to 389 KB.
   - Decoupled public routes in [`RootLayout.tsx`](client/src/RootLayout.tsx) from dashboard data loading so public landing pages achieve sub-1.5s mobile LCP.
   - Added preconnect and preload hints for Google Fonts and brand icon in [`index.html`](client/index.html).
@@ -426,16 +432,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Coach-Friendly Visual Release Notes (`CHANGELOG.user.md`)**:
-  - Introduced standalone user-facing release notes document [`CHANGELOG.user.md`](CHANGELOG.user.md) crafted specifically for grassroots coaches, team managers, and parents with zero code jargon and outcome-oriented summaries ([#10](https://github.com/rossdevereux/team-organiser/issues/10)).
+  - Introduced standalone user-facing release notes document [`CHANGELOG.user.md`](CHANGELOG.user.md) crafted specifically for grassroots coaches, team managers, and parents with zero code jargon and outcome-oriented summaries ([#10](https://github.com/rossdevereux/subshuffle/issues/10)).
   - Implemented typed release notes utility [`userChangelog.ts`](client/src/utils/userChangelog.ts) with structured TypeScript export `CHANGELOG_DATA` and Vite raw markdown import (`?raw`).
   - Added repository policy rule in [`.agents/rules/changelog.md`](.agents/rules/changelog.md) enforcing synchronous updates between developer `CHANGELOG.md` and user `CHANGELOG.user.md`.
 
 ### Changed
 - **Markdown-Powered Release Notes Modal ([`ReleaseNotesModal.tsx`](client/src/components/ReleaseNotesModal.tsx))**:
-  - Refactored the in-app release notes viewer to render raw Markdown via `react-markdown` and `remark-gfm` with custom Tailwind component styling for `h2` version titles, calendar date pills, coloured category badges (`Added` emerald, `Improved` sky, `Fixed` amber), clean bullet lists, and bright typography ([#10](https://github.com/rossdevereux/team-organiser/issues/10)).
+  - Refactored the in-app release notes viewer to render raw Markdown via `react-markdown` and `remark-gfm` with custom Tailwind component styling for `h2` version titles, calendar date pills, coloured category badges (`Added` emerald, `Improved` sky, `Fixed` amber), clean bullet lists, and bright typography ([#10](https://github.com/rossdevereux/subshuffle/issues/10)).
   - Maintained accessibility and real-time search/category filtering without requiring authentication.
 - **Menu Bar & Navigation Layout Consolidation**:
-  - Replaced sprawling navigation bar header controls with a consolidated Avatar profile menu ([`UserMenu.tsx`](client/src/components/UserMenu.tsx)) encapsulating user details, role badge (`Club Admin`, `Team Coach`, `Member`, `Guest Coach`), language selector with flags (`GB EN`, `ES`, `DE`, `FR`), Team & League Settings, and Sign In / Sign Out actions ([#9](https://github.com/rossdevereux/team-organiser/issues/9)).
+  - Replaced sprawling navigation bar header controls with a consolidated Avatar profile menu ([`UserMenu.tsx`](client/src/components/UserMenu.tsx)) encapsulating user details, role badge (`Club Admin`, `Team Coach`, `Member`, `Guest Coach`), language selector with flags (`GB EN`, `ES`, `DE`, `FR`), Team & League Settings, and Sign In / Sign Out actions ([#9](https://github.com/rossdevereux/subshuffle/issues/9)).
   - Combined export and sharing actions into a single `Share / Export ▾` dropdown menu in [`Navbar.tsx`](client/src/components/Navbar.tsx) providing quick access to "WhatsApp Squad Card" and "Print Team Sheet".
   - Consolidated team and match selection into a single breadcrumb selector pill (`[ Team › Match ▾ ]`) with outside-click dismissal to save header space.
   - Relocated pitch-specific controls (*Halves / Match Periods*, *Formation*, and *Auto-Balance*) out of the global navigation bar and into a dedicated pitch controls toolbar directly above the 2D football pitch in [`PitchView.tsx`](client/src/components/PitchView.tsx).
@@ -445,13 +451,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Admin Portal User Provisioning & Invite State**: Corrected user invite payload serialization in [`adminApi.ts`](client/src/utils/adminApi.ts) and immediate UI state update in [`AdminPortal.tsx`](client/src/components/AdminPortal.tsx).
 
 ### Removed
-- **Duplicate Footer Action Items**: Removed redundant action buttons from the global footer bar (*Print Pitch Sheet*, *Teams & Sharing*, *League Settings*, and *WhatsApp Announcement*) in [`RootLayout.tsx`](client/src/RootLayout.tsx) in favor of the primary navigation tabs and utility controls in the top navbar header ([#8](https://github.com/rossdevereux/team-organiser/issues/8)).
+- **Duplicate Footer Action Items**: Removed redundant action buttons from the global footer bar (*Print Pitch Sheet*, *Teams & Sharing*, *League Settings*, and *WhatsApp Announcement*) in [`RootLayout.tsx`](client/src/RootLayout.tsx) in favor of the primary navigation tabs and utility controls in the top navbar header ([#8](https://github.com/rossdevereux/subshuffle/issues/8)).
 
 ## [1.1.0] - 2026-10-17
 
 ### Added
 - **Fixture Final Score & Goal Scorers (Live Match & Post-Match Results)**:
-  - Added ability to record match scores (Home and Away) and individual goal scorers with player attribution, stoppage time minutes format (e.g. `23`, `45+2`), and own-goal (`OG`) flags ([#4](https://github.com/rossdevereux/team-organiser/issues/4)).
+  - Added ability to record match scores (Home and Away) and individual goal scorers with player attribution, stoppage time minutes format (e.g. `23`, `45+2`), and own-goal (`OG`) flags ([#4](https://github.com/rossdevereux/subshuffle/issues/4)).
   - Implemented interactive [`ScoreScorersModal.tsx`](client/src/components/ScoreScorersModal.tsx) with score steppers, reactive validation banners preventing goal scorers from exceeding entered score totals, and quick live/final status toggling.
   - Implemented live scoreboard controls and real-time score adjustment buttons inside [`LiveMatchModal.tsx`](client/src/components/LiveMatchModal.tsx).
   - Added prominent score badges and goal scorers breakdown tags on fixture cards in [`FixtureManager.tsx`](client/src/components/FixtureManager.tsx), [`AllFixturesTable.tsx`](client/src/components/AllFixturesTable.tsx), and active match header in [`RootLayout.tsx`](client/src/RootLayout.tsx).
@@ -462,7 +468,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Dynamically injected the semver application version from `package.json` into the client build via Vite (`import.meta.env.VITE_APP_VERSION`), accessible via [`version.ts`](client/src/utils/version.ts).
   - Added discrete, accessible version indicator button in the global footer across both the main matchday layout ([`RootLayout.tsx`](client/src/RootLayout.tsx)) and public landing page ([`LandingHero.tsx`](client/src/components/LandingHero.tsx)).
   - Implemented public, mobile-responsive [`ChangelogModal.tsx`](client/src/components/ChangelogModal.tsx) featuring real-time search filtering, category filter chips (*All Updates*, *Features*, *Improvements*, *Bug Fixes*), GitHub issue link references, and keyboard accessibility without requiring authentication.
-  - Added backend endpoint `GET /api/changelog` in [`api.ts`](server/src/routes/api.ts) and markdown parsing service [`changelogService.ts`](server/src/services/changelogService.ts) with cache-control headers and resilient client-side offline fallback ([#5](https://github.com/rossdevereux/team-organiser/issues/5)).
+  - Added backend endpoint `GET /api/changelog` in [`api.ts`](server/src/routes/api.ts) and markdown parsing service [`changelogService.ts`](server/src/services/changelogService.ts) with cache-control headers and resilient client-side offline fallback ([#5](https://github.com/rossdevereux/subshuffle/issues/5)).
   - Added unit test coverage in [`changelogService.test.ts`](server/src/tests/changelogService.test.ts) and end-to-end Playwright tests in [`footer-changelog.spec.ts`](e2e/footer-changelog.spec.ts).
 - **GitHub Issue Lifecycle & Release Pipeline Skill**: Added [`github-issue-lifecycle.md`](.antigravity/skills/github-issue-lifecycle.md) providing step-by-step procedures, shell commands, and guardrails for picking up GitHub issues via `gh`, completing issues with closing commits and `CHANGELOG.md` updates, and cutting semantic releases with `package.json` bumping and git tagging.
 - **Fixture-Specific Position Locks & Global Unlock Overrides**:
@@ -491,7 +497,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Team Admin Multi-Tenant Visibility & Access Control**:
-  - Ensured authenticated team administrators and coaches only see teams specifically created by them or explicitly shared with them, preventing inadvertent team leakage across different club accounts ([#3](https://github.com/rossdevereux/team-organiser/issues/3)).
+  - Ensured authenticated team administrators and coaches only see teams specifically created by them or explicitly shared with them, preventing inadvertent team leakage across different club accounts ([#3](https://github.com/rossdevereux/subshuffle/issues/3)).
   - Eliminated demo seed team leakage (`The Rovers FC (U10s)` and `(U12s)`) into authenticated sessions caused by unauthenticated `localStorage` cache fallback in [`MatchdayContext.tsx`](client/src/context/MatchdayContext.tsx), scoping cached teams to the authenticated user ID (`subshuffle_cached_teams_${currentUser.uid}`).
   - Enforced strict backend authorization checks in [`storage.ts`](server/src/db/storage.ts) and [`api.ts`](server/src/routes/api.ts) for `GET /api/teams`, `GET/PUT/DELETE /api/teams/:id`, `POST /api/teams/:id/share`, `GET/POST/PUT/DELETE /api/players`, and `GET/POST/PUT/DELETE /api/fixtures`.
   - Added clean empty state display ("No Teams Found", "Create Your First Team") in [`TeamManager.tsx`](client/src/components/TeamManager.tsx) and persistent `+ Create Team` CTA button in [`Navbar.tsx`](client/src/components/Navbar.tsx) when an admin user has no teams configured.

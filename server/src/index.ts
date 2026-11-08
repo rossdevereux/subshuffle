@@ -46,7 +46,7 @@ app.use((req, _res, next) => {
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
-    service: 'team-organiser-api',
+    service: 'subshuffle-api',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
