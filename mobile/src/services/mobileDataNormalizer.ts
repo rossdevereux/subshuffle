@@ -7,6 +7,9 @@ import {
   MatchSquad,
   PeriodLineup,
   PlannedInGameSub,
+  SuggestedSubPlan,
+  SuggestedSubSwap,
+  MatchPlayerStats,
   SeasonDashboardSummary,
   getFixturePotmIds,
 } from '@subshuffle/shared';
@@ -56,6 +59,24 @@ export function normalizeTeamSettings(
       ? Array.from(new Set([currentSeason, ...rawSeasons]))
       : [currentSeason];
 
+  const customFormations = Array.isArray(s.customFormations)
+    ? s.customFormations
+        .filter((cf: any) => cf && (Array.isArray(cf.positions) || Array.isArray(cf.slots)))
+        .map((cf: any) => {
+          const slots = Array.isArray(cf.positions) ? cf.positions : cf.slots;
+          const size = cf.pitchPlayerCount || cf.teamSize || pitchPlayerCount;
+          return {
+            ...cf,
+            id: cf.id || cf.name || `custom_${size}`,
+            name: cf.name || 'Custom',
+            pitchPlayerCount: size,
+            teamSize: size,
+            positions: slots,
+            slots,
+          };
+        })
+    : [];
+
   return {
     pitchPlayerCount,
     matchdaySquadCap:
@@ -76,10 +97,8 @@ export function normalizeTeamSettings(
     defaultFormation:
       typeof s.defaultFormation === 'string' && s.defaultFormation.trim()
         ? s.defaultFormation
-        : fallback.defaultFormation || '2-3-1',
-    customFormations: Array.isArray(s.customFormations)
-      ? s.customFormations.filter((cf: any) => cf && Array.isArray(cf.positions))
-      : [],
+        : fallback.defaultFormation || '2-3-1 (Standard)',
+    customFormations,
     currentSeason,
     seasons,
     defaultSubIntervalMinutes:
@@ -120,7 +139,10 @@ export function normalizePlayer(raw: any, defaultTeamId: string): Player {
     ? p.preferredPositions.filter((pos: any) => VALID_POSITIONS.includes(pos))
     : [];
   return {
-    id: typeof p.id === 'string' && p.id ? p.id : `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id:
+      typeof p.id === 'string' && p.id
+        ? p.id
+        : `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     teamId: typeof p.teamId === 'string' && p.teamId ? p.teamId : defaultTeamId,
     name: typeof p.name === 'string' && p.name.trim() ? p.name.trim() : 'Player',
     squadNumber:
@@ -134,10 +156,17 @@ export function normalizePlayer(raw: any, defaultTeamId: string): Player {
   };
 }
 
+/**
+ * Normalizes `MatchSquad` payloads between server (`subs`, `playerOutId`, `playerInId`)
+ * and mobile (`bench`, `offPlayerId`, `onPlayerId`) so both sets of keys are always populated.
+ */
 export function normalizeMatchSquad(raw: any): MatchSquad | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
   const selectedPlayerIds = Array.isArray(raw.selectedPlayerIds)
     ? raw.selectedPlayerIds.filter((id: any) => typeof id === 'string')
+    : [];
+  const restedPlayerIds = Array.isArray(raw.restedPlayerIds)
+    ? raw.restedPlayerIds.filter((id: any) => typeof id === 'string')
     : [];
   const fixedPlayerPositions =
     raw.fixedPlayerPositions && typeof raw.fixedPlayerPositions === 'object'
@@ -146,43 +175,72 @@ export function normalizeMatchSquad(raw: any): MatchSquad | undefined {
   const lineupsByPeriod: PeriodLineup[] = Array.isArray(raw.lineupsByPeriod)
     ? raw.lineupsByPeriod
         .filter((lp: any) => lp && typeof lp === 'object')
-        .map((lp: any, idx: number) => ({
-          period: typeof lp.period === 'number' ? lp.period : idx + 1,
-          onPitch: Array.isArray(lp.onPitch)
-            ? lp.onPitch
-                .filter((op: any) => op && typeof op === 'object')
-                .map((op: any) => ({
-                  position: typeof op.position === 'string' ? op.position : 'CM',
-                  playerId: typeof op.playerId === 'string' ? op.playerId : '',
-                }))
-            : [],
-          bench: Array.isArray(lp.bench)
-            ? lp.bench.filter((bid: any) => typeof bid === 'string')
-            : [],
-        }))
+        .map((lp: any, idx: number) => {
+          const rawBench = Array.isArray(lp.bench)
+            ? lp.bench
+            : Array.isArray(lp.subs)
+            ? lp.subs
+            : [];
+          const bench = rawBench.filter((bid: any) => typeof bid === 'string');
+          return {
+            period: typeof lp.period === 'number' ? lp.period : idx + 1,
+            onPitch: Array.isArray(lp.onPitch)
+              ? lp.onPitch
+                  .filter((op: any) => op && typeof op === 'object')
+                  .map((op: any) => ({
+                    position: typeof op.position === 'string' ? op.position : 'MID_C',
+                    playerId: typeof op.playerId === 'string' ? op.playerId : '',
+                  }))
+              : [],
+            bench,
+            subs: bench,
+          };
+        })
     : [];
+
   const plannedInGameSubs: PlannedInGameSub[] = Array.isArray(raw.plannedInGameSubs)
     ? raw.plannedInGameSubs
         .filter((s: any) => s && typeof s === 'object')
-        .map((s: any, idx: number) => ({
-          id: typeof s.id === 'string' && s.id ? s.id : `sub_${idx}`,
-          period: typeof s.period === 'number' ? s.period : 1,
-          targetMinute: typeof s.targetMinute === 'number' ? s.targetMinute : 10,
-          matchMinute:
-            typeof s.matchMinute === 'number'
-              ? s.matchMinute
-              : typeof s.targetMinute === 'number'
-              ? s.targetMinute
-              : 10,
-          offPlayerId: typeof s.offPlayerId === 'string' ? s.offPlayerId : '',
-          onPlayerId: typeof s.onPlayerId === 'string' ? s.onPlayerId : '',
-          position: typeof s.position === 'string' ? s.position : 'CM',
-          executed: Boolean(s.executed),
-        }))
+        .map((s: any, idx: number) => {
+          const offId =
+            typeof s.offPlayerId === 'string' && s.offPlayerId
+              ? s.offPlayerId
+              : typeof s.playerOutId === 'string'
+              ? s.playerOutId
+              : '';
+          const onId =
+            typeof s.onPlayerId === 'string' && s.onPlayerId
+              ? s.onPlayerId
+              : typeof s.playerInId === 'string'
+              ? s.playerInId
+              : '';
+          const period = typeof s.period === 'number' ? s.period : 1;
+          const targetMinute = typeof s.targetMinute === 'number' ? s.targetMinute : 10;
+          const matchMinute =
+            typeof s.matchMinute === 'number' ? s.matchMinute : targetMinute;
+          return {
+            id: typeof s.id === 'string' && s.id ? s.id : `sub_${period}_${targetMinute}_${idx}`,
+            period,
+            targetMinute,
+            matchMinute,
+            offPlayerId: offId,
+            onPlayerId: onId,
+            playerOutId: offId,
+            playerOutName: typeof s.playerOutName === 'string' ? s.playerOutName : undefined,
+            playerInId: onId,
+            playerInName: typeof s.playerInName === 'string' ? s.playerInName : undefined,
+            position: typeof s.position === 'string' ? s.position : 'MID_C',
+            reason: typeof s.reason === 'string' ? s.reason : undefined,
+            executed: Boolean(s.executed),
+          };
+        })
     : [];
 
   return {
+    fixtureId: typeof raw.fixtureId === 'string' ? raw.fixtureId : undefined,
     selectedPlayerIds,
+    restedPlayerIds,
+    manualOverrides: Boolean(raw.manualOverrides),
     fixedPlayerPositions,
     lineupsByPeriod,
     plannedInGameSubs,
@@ -190,7 +248,7 @@ export function normalizeMatchSquad(raw: any): MatchSquad | undefined {
 }
 
 export function normalizeFixture(raw: any, defaultTeamId: string): Fixture {
-  const f = raw && typeof raw === 'object' ? raw : {};
+  const f = raw && typeof raw !== 'boolean' && typeof raw === 'object' ? raw : {};
   const fixedPlayerPositions =
     f.fixedPlayerPositions && typeof f.fixedPlayerPositions === 'object'
       ? { ...f.fixedPlayerPositions }
@@ -202,8 +260,10 @@ export function normalizeFixture(raw: any, defaultTeamId: string): Fixture {
           id: typeof s.id === 'string' && s.id ? s.id : `sc_${idx}`,
           playerId: typeof s.playerId === 'string' ? s.playerId : undefined,
           playerName: typeof s.playerName === 'string' ? s.playerName : undefined,
-          minute: typeof s.minute === 'number' ? s.minute : undefined,
-          period: typeof s.period === 'number' ? s.period : undefined,
+          minute:
+            typeof s.minute === 'number' || typeof s.minute === 'string'
+              ? s.minute
+              : undefined,
           isOwnGoal: Boolean(s.isOwnGoal),
           team: (s.team === 'away' ? 'away' : 'home') as 'home' | 'away',
         }))
@@ -254,9 +314,151 @@ export function normalizeFixture(raw: any, defaultTeamId: string): Fixture {
     matchSquad: normalizeMatchSquad(f.matchSquad),
     postMatchRecording:
       f.postMatchRecording && typeof f.postMatchRecording === 'object'
-        ? f.postMatchRecording
+        ? {
+            ...f.postMatchRecording,
+            actualMinutesByPlayer:
+              f.postMatchRecording.actualMinutesByPlayer ||
+              f.postMatchRecording.playerMinutes ||
+              {},
+            playerMinutes:
+              f.postMatchRecording.playerMinutes ||
+              f.postMatchRecording.actualMinutesByPlayer ||
+              {},
+          }
         : undefined,
   };
+}
+
+/**
+ * Normalizes the response from `GET /api/fixtures/:id/suggested-subs`.
+ * The server returns `plans: [{ intervalMinutes, strategyName, windows: [{ minute, period, subChanges: [...] }] }]`.
+ * Mobile UI consumes `SuggestedSubPlan[]` (`[{ period, minuteMark, periodMinute, swaps: [...] }]`).
+ */
+export function normalizeSuggestedSubPlans(
+  rawPlans: any,
+  periodDurationMinutes: number = 25
+): SuggestedSubPlan[] {
+  if (!Array.isArray(rawPlans) || rawPlans.length === 0) return [];
+  const safeDur = periodDurationMinutes > 0 ? periodDurationMinutes : 25;
+
+  // Case 1: Server strategy array format `[{ strategyName, windows: [...] }, ...]`
+  const firstItem = rawPlans[0];
+  const windowsSource =
+    firstItem && typeof firstItem === 'object' && Array.isArray(firstItem.windows)
+      ? firstItem.windows
+      : rawPlans;
+
+  const result: SuggestedSubPlan[] = [];
+  for (const w of windowsSource) {
+    if (!w || typeof w !== 'object') continue;
+    const period = typeof w.period === 'number' && w.period > 0 ? w.period : 1;
+    const minuteMark =
+      typeof w.minuteMark === 'number'
+        ? w.minuteMark
+        : typeof w.minute === 'number'
+        ? w.minute
+        : (period - 1) * safeDur + 10;
+    const periodMinute =
+      typeof w.periodMinute === 'number'
+        ? w.periodMinute
+        : Math.max(1, minuteMark - (period - 1) * safeDur);
+
+    const rawSwaps = Array.isArray(w.swaps)
+      ? w.swaps
+      : Array.isArray(w.subChanges)
+      ? w.subChanges
+      : [];
+
+    const swaps: SuggestedSubSwap[] = rawSwaps
+      .filter((sw: any) => sw && typeof sw === 'object')
+      .map((sw: any) => ({
+        offPlayerId: String(sw.offPlayerId || sw.playerOutId || ''),
+        offPlayerName: String(sw.offPlayerName || sw.playerOutName || 'Player'),
+        onPlayerId: String(sw.onPlayerId || sw.playerInId || ''),
+        onPlayerName: String(sw.onPlayerName || sw.playerInName || 'Player'),
+        position: String(sw.position || 'MID_C'),
+        reason: typeof sw.reason === 'string' ? sw.reason : undefined,
+      }));
+
+    if (swaps.length > 0) {
+      result.push({
+        period,
+        minuteMark,
+        periodMinute,
+        swaps,
+      });
+    }
+  }
+  return result;
+}
+
+/**
+ * Normalizes `GET /api/fixtures/:id/stats` responses where the server returns
+ * `{ playerId, player, periodsPlayed: number[], minutesPlayed, gameTimePercent, positionsPlayed }`.
+ */
+export function normalizeMatchPlayerStats(
+  rawStats: any,
+  players: Player[],
+  periodCount: number = 2,
+  targetGameTimePercent: number = 50
+): MatchPlayerStats[] {
+  if (!Array.isArray(rawStats)) return [];
+  const playerMap = new Map((players || []).map((p) => [p.id, p]));
+
+  return rawStats
+    .filter((st: any) => st && typeof st === 'object')
+    .map((st: any) => {
+      const pid = String(st.playerId || st.player?.id || '');
+      const playerObj = st.player || playerMap.get(pid);
+      const periodsOnPitch =
+        typeof st.periodsOnPitch === 'number'
+          ? st.periodsOnPitch
+          : Array.isArray(st.periodsPlayed)
+          ? st.periodsPlayed.length
+          : typeof st.periodsPlayed === 'number'
+          ? st.periodsPlayed
+          : 0;
+      const periodsOnBench =
+        typeof st.periodsOnBench === 'number'
+          ? st.periodsOnBench
+          : Math.max(0, periodCount - periodsOnPitch);
+      const totalMinutes =
+        typeof st.totalMinutes === 'number'
+          ? st.totalMinutes
+          : typeof st.minutesPlayed === 'number'
+          ? st.minutesPlayed
+          : 0;
+      const percentOfMatch =
+        typeof st.percentOfMatch === 'number'
+          ? st.percentOfMatch
+          : typeof st.gameTimePercent === 'number'
+          ? st.gameTimePercent
+          : 0;
+      const positionsPlayed = Array.isArray(st.positionsPlayed)
+        ? st.positionsPlayed.filter((x: any) => typeof x === 'string')
+        : [];
+      const meetsTarget =
+        typeof st.meetsTarget === 'boolean'
+          ? st.meetsTarget
+          : percentOfMatch >= targetGameTimePercent;
+
+      return {
+        playerId: pid,
+        playerName: String(st.playerName || playerObj?.name || 'Player'),
+        squadNumber:
+          typeof st.squadNumber === 'number'
+            ? st.squadNumber
+            : typeof playerObj?.squadNumber === 'number'
+            ? playerObj.squadNumber
+            : undefined,
+        periodsOnPitch,
+        periodsOnBench,
+        totalMinutes,
+        percentOfMatch,
+        positionsPlayed,
+        meetsTarget,
+      };
+    });
 }
 
 /**
@@ -299,7 +501,6 @@ export function normalizeDashboardSummary(
     });
 
   if (raw && typeof raw === 'object') {
-    // Check if it is the server TeamDashboardSummary format (with `overview`)
     if (raw.overview && typeof raw.overview === 'object') {
       const ov = raw.overview;
       const matchesPlayed = typeof ov.matchesPlayed === 'number' ? ov.matchesPlayed : 0;
@@ -349,7 +550,6 @@ export function normalizeDashboardSummary(
       };
     }
 
-    // Check if it is already in SeasonDashboardSummary format
     if (typeof raw.matchesPlayed === 'number' && Array.isArray(raw.topScorers)) {
       return {
         teamId: defaultTeamId,

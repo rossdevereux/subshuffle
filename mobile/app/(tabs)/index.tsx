@@ -264,55 +264,82 @@ export default function PitchAndBenchScreen() {
           />
         </Svg>
 
-        {(activeFormation.positions || []).map((pos) => {
-          const assignment = (currentLineup?.onPitch || []).find((op) => op.position === pos.code);
-          const player = assignment ? playerMap.get(assignment.playerId) : undefined;
-          const isSelected =
-            selectedSwapSource?.type === 'pitch' &&
-            selectedSwapSource.playerId === assignment?.playerId;
-          const isLocked = assignment?.playerId && Boolean(fixedMap[assignment.playerId]);
-          const isCaptain =
-            assignment?.playerId && activeFixture.captainId === assignment.playerId;
+        {(() => {
+          const formationPositions = activeFormation.positions || [];
+          const onPitchList = currentLineup?.onPitch || [];
+          const matchedPlayerIds = new Set<string>();
+          const directAssignments = formationPositions.map((pos) => {
+            const match = onPitchList.find(
+              (op) => op.position === pos.code && !matchedPlayerIds.has(op.playerId)
+            );
+            if (match?.playerId) {
+              matchedPlayerIds.add(match.playerId);
+            }
+            return match;
+          });
+          const remainingOnPitch = onPitchList.filter(
+            (op) => op.playerId && !matchedPlayerIds.has(op.playerId)
+          );
+          let fallbackIdx = 0;
 
-          return (
-            <Pressable
-              key={pos.code}
-              onPress={() => {
-                if (assignment?.playerId) {
-                  handleTapPlayerNode({
-                    type: 'pitch',
-                    playerId: assignment.playerId,
-                    position: pos.code,
-                  });
-                }
-              }}
-              style={[
-                styles.playerNode,
-                {
-                  left: `${pos.x}%`,
-                  top: `${pos.y}%`,
-                },
-                isSelected && styles.playerNodeSelected,
-              ]}
-            >
-              <View
+          return formationPositions.map((pos, idx) => {
+            const assignment =
+              directAssignments[idx] ||
+              (fallbackIdx < remainingOnPitch.length
+                ? remainingOnPitch[fallbackIdx++]
+                : undefined);
+            const player = assignment ? playerMap.get(assignment.playerId) : undefined;
+            const isSelected =
+              selectedSwapSource?.type === 'pitch' &&
+              selectedSwapSource.playerId === assignment?.playerId;
+            const isLocked = assignment?.playerId && Boolean(fixedMap[assignment.playerId]);
+            const isCaptain =
+              assignment?.playerId && activeFixture.captainId === assignment.playerId;
+
+            return (
+              <Pressable
+                key={pos.code}
+                onPress={() => {
+                  if (assignment?.playerId) {
+                    handleTapPlayerNode({
+                      type: 'pitch',
+                      playerId: assignment.playerId,
+                      position: assignment.position || pos.code,
+                    });
+                  }
+                }}
                 style={[
-                  styles.positionBadge,
-                  pos.code === 'GK' && styles.gkBadge,
+                  styles.playerNode,
+                  {
+                    left: `${pos.x}%`,
+                    top: `${pos.y}%`,
+                  },
+                  isSelected && styles.playerNodeSelected,
                 ]}
               >
-                <Text style={styles.positionBadgeText}>
-                  {isLocked ? '🔒 ' : ''}
-                  {pos.code}
-                  {isCaptain ? ' ©' : ''}
+                <View
+                  style={[
+                    styles.positionBadge,
+                    pos.code === 'GK' && styles.gkBadge,
+                  ]}
+                >
+                  <Text style={styles.positionBadgeText}>
+                    {isLocked ? '🔒 ' : ''}
+                    {pos.code}
+                    {isCaptain ? ' ©' : ''}
+                  </Text>
+                </View>
+                <Text style={styles.playerNodeName} numberOfLines={1}>
+                  {player
+                    ? `${player.squadNumber ? `#${player.squadNumber} ` : ''}${(
+                        player.name || 'Player'
+                      ).split(' ')[0]}`
+                    : 'Empty'}
                 </Text>
-              </View>
-              <Text style={styles.playerNodeName} numberOfLines={1}>
-                {player ? `${player.squadNumber ? `#${player.squadNumber} ` : ''}${(player.name || 'Player').split(' ')[0]}` : 'Empty'}
-              </Text>
-            </Pressable>
-          );
-        })}
+              </Pressable>
+            );
+          });
+        })()}
       </View>
 
       {/* Bench Players Card */}
@@ -456,7 +483,7 @@ export default function PitchAndBenchScreen() {
                     <Text style={styles.planWindowHeader}>
                       Period {plan.period} • Minute {plan.periodMinute}&apos; (Match {plan.minuteMark}&apos;)
                     </Text>
-                    {plan.swaps.map((sw, sIdx) => (
+                    {(plan.swaps || []).map((sw, sIdx) => (
                       <Text key={sIdx} style={styles.planSwapRow}>
                         🟢 ON: {sw.onPlayerName} ⇄ 🔴 OFF: {sw.offPlayerName} ({sw.position})
                       </Text>
@@ -473,7 +500,7 @@ export default function PitchAndBenchScreen() {
                 }}
               >
                 <Text style={styles.applyPlanBtnText}>
-                  ✅ Apply & Sync Plan to Live Match ({suggestedPlans.reduce((a, p) => a + p.swaps.length, 0)} subs)
+                  ✅ Apply & Sync Plan to Live Match ({suggestedPlans.reduce((a, p) => a + (p.swaps || []).length, 0)} subs)
                 </Text>
               </Pressable>
 

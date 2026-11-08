@@ -14,8 +14,11 @@ import {
   normalizeFixture,
   normalizeMatchSquad,
   normalizeDashboardSummary,
+  normalizeSuggestedSubPlans,
+  normalizeMatchPlayerStats,
   parseQueryParams,
 } from '../../../mobile/src/services/mobileDataNormalizer.js';
+import { DEFAULT_FORMATIONS as SERVER_FORMATIONS } from '../db/formations.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -211,6 +214,144 @@ describe('Android Mobile App Stability, Auth, Data Normalizer & Parity Suite', (
       assert.deepEqual(partialSquad?.lineupsByPeriod[0].bench, []);
     });
 
+    it('normalizes Server PeriodLineup.subs -> bench and PlannedInGameSub playerOutId/playerInId -> offPlayerId/onPlayerId', () => {
+      const serverMatchSquad = normalizeMatchSquad({
+        selectedPlayerIds: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10'],
+        lineupsByPeriod: [
+          {
+            period: 1,
+            onPitch: [
+              { position: 'GK', playerId: 'p1' },
+              { position: 'DEF_L', playerId: 'p2' },
+              { position: 'DEF_R', playerId: 'p3' },
+              { position: 'MID_L', playerId: 'p4' },
+              { position: 'MID_C', playerId: 'p5' },
+              { position: 'MID_R', playerId: 'p6' },
+              { position: 'ATT', playerId: 'p7' },
+            ],
+            subs: ['p8', 'p9', 'p10'],
+          },
+        ],
+        plannedInGameSubs: [
+          {
+            id: 'sub_server_1',
+            period: 1,
+            targetMinute: 12,
+            matchMinute: 12,
+            playerOutId: 'p4',
+            playerOutName: 'Oliver',
+            playerInId: 'p8',
+            playerInName: 'George',
+            position: 'MID_L',
+            executed: false,
+          },
+        ],
+      });
+
+      assert.ok(serverMatchSquad);
+      assert.deepEqual(serverMatchSquad?.lineupsByPeriod[0].bench, ['p8', 'p9', 'p10']);
+      assert.deepEqual(serverMatchSquad?.lineupsByPeriod[0].subs, ['p8', 'p9', 'p10']);
+      assert.equal(serverMatchSquad?.plannedInGameSubs?.length, 1);
+      const sub = serverMatchSquad!.plannedInGameSubs![0];
+      assert.equal(sub.offPlayerId, 'p4');
+      assert.equal(sub.onPlayerId, 'p8');
+      assert.equal(sub.playerOutId, 'p4');
+      assert.equal(sub.playerInId, 'p8');
+      assert.equal(sub.targetMinute, 12);
+    });
+
+    it('normalizes Server GET /api/fixtures/:id/suggested-subs multi-strategy windows into SuggestedSubPlan[] with swaps array', () => {
+      const serverSuggestedPlansPayload = [
+        {
+          intervalMinutes: 10,
+          strategyName: 'Balanced 10-Min Rolling Subs',
+          description: 'Swaps 2 players every 10 minutes',
+          windows: [
+            {
+              minute: 10,
+              period: 1,
+              subChanges: [
+                {
+                  playerOutId: 'p4',
+                  playerOutName: 'Oliver Wilson',
+                  playerInId: 'p8',
+                  playerInName: 'George Walker',
+                  position: 'MID_L',
+                  reason: 'Fairness rotation',
+                },
+                {
+                  playerOutId: 'p3',
+                  playerOutName: 'Noah Taylor',
+                  playerInId: 'p9',
+                  playerInName: 'Alfie Wright',
+                  position: 'DEF_R',
+                  reason: 'Fairness rotation',
+                },
+              ],
+            },
+            {
+              minute: 35,
+              period: 2,
+              subChanges: [
+                {
+                  playerOutId: 'p5',
+                  playerOutName: 'Charlie Evans',
+                  playerInId: 'p4',
+                  playerInName: 'Oliver Wilson',
+                  position: 'MID_C',
+                },
+              ],
+            },
+          ],
+        },
+      ];
+
+      const normalizedPlans = normalizeSuggestedSubPlans(serverSuggestedPlansPayload, 25);
+      assert.equal(normalizedPlans.length, 2);
+      assert.equal(normalizedPlans[0].period, 1);
+      assert.equal(normalizedPlans[0].minuteMark, 10);
+      assert.equal(normalizedPlans[0].periodMinute, 10);
+      assert.equal(normalizedPlans[0].swaps.length, 2);
+      assert.equal(normalizedPlans[0].swaps[0].offPlayerId, 'p4');
+      assert.equal(normalizedPlans[0].swaps[0].offPlayerName, 'Oliver Wilson');
+      assert.equal(normalizedPlans[0].swaps[0].onPlayerId, 'p8');
+      assert.equal(normalizedPlans[0].swaps[0].onPlayerName, 'George Walker');
+      assert.equal(normalizedPlans[0].swaps[0].position, 'MID_L');
+
+      assert.equal(normalizedPlans[1].period, 2);
+      assert.equal(normalizedPlans[1].minuteMark, 35);
+      assert.equal(normalizedPlans[1].periodMinute, 10);
+      assert.equal(normalizedPlans[1].swaps.length, 1);
+    });
+
+    it('normalizes Server GET /api/fixtures/:id/stats payload into MatchPlayerStats[]', () => {
+      const serverStats = [
+        {
+          playerId: 'p1',
+          playerName: 'Albert',
+          periodsPlayed: [1, 2],
+          minutesPlayed: 50,
+          gameTimePercent: 100,
+          positionsPlayed: ['GK'],
+        },
+        {
+          playerId: 'p8',
+          playerName: 'George',
+          periodsPlayed: [2],
+          minutesPlayed: 25,
+          gameTimePercent: 50,
+          positionsPlayed: ['MID_L'],
+        },
+      ];
+      const normalized = normalizeMatchPlayerStats(serverStats, [], 2, 50);
+      assert.equal(normalized.length, 2);
+      assert.equal(normalized[0].totalMinutes, 50);
+      assert.equal(normalized[0].percentOfMatch, 100);
+      assert.equal(normalized[0].periodsOnPitch, 2);
+      assert.equal(normalized[0].periodsOnBench, 0);
+      assert.equal(normalized[0].meetsTarget, true);
+    });
+
     it('normalizes Server TeamDashboardSummary (overview.record + scorersLeaderboard + potmLeaderboard)', () => {
       const serverDashboardPayload = {
         teamId: 'team_real_123',
@@ -283,9 +424,11 @@ describe('Android Mobile App Stability, Auth, Data Normalizer & Parity Suite', (
   });
 
   describe('3. Shared Package & Screen Completeness Verification', () => {
-    it('verifies all 8 native screen routes exist and export default components', () => {
+    it('verifies all 10 native screen routes (including /auth OAuth callback and +not-found fallback) exist and export default components', () => {
       const requiredScreens = [
         'app/_layout.tsx',
+        'app/auth.tsx',
+        'app/+not-found.tsx',
         'app/(tabs)/_layout.tsx',
         'app/(tabs)/index.tsx',
         'app/(tabs)/matrix.tsx',
@@ -303,6 +446,25 @@ describe('Android Mobile App Stability, Auth, Data Normalizer & Parity Suite', (
         assert.ok(
           content.includes('export default function'),
           `${relPath} must export a default React component function`
+        );
+      }
+    });
+
+    it('matches all 12 server formation definitions and position slot codes (GK, DEF_L, DEF_R, MID_L, MID_C, MID_R, ATT) between shared and server', () => {
+      assert.equal(
+        BUILT_IN_FORMATIONS.length,
+        SERVER_FORMATIONS.length,
+        'Shared BUILT_IN_FORMATIONS count must match server BUILT_IN_FORMATIONS count'
+      );
+
+      for (const serverForm of SERVER_FORMATIONS) {
+        const sharedForm = BUILT_IN_FORMATIONS.find((f) => f.id === serverForm.id);
+        assert.ok(sharedForm, `Missing formation ${serverForm.id} (${serverForm.name}) in @subshuffle/shared`);
+        assert.equal(sharedForm.name, serverForm.name);
+        assert.deepEqual(
+          sharedForm.positions.map((p) => p.code),
+          serverForm.slots.map((p) => p.code),
+          `Position slot codes for ${serverForm.name} must match server exactly so pitch nodes never show Empty`
         );
       }
     });

@@ -18,9 +18,9 @@ const ROOT_DIR = path.resolve(__dirname, '../../../');
 
 describe('Shared Domain Package (@subshuffle/shared) & Expo Mobile App Suite (Issue #41)', () => {
   it('provides built-in 5v5, 7v7, 9v9, and 11v11 tactical formations in @subshuffle/shared', () => {
-    assert.equal(BUILT_IN_FORMATIONS.length, 4);
+    assert.equal(BUILT_IN_FORMATIONS.length, 12);
     assert.deepEqual(
-      BUILT_IN_FORMATIONS.map((f) => f.pitchPlayerCount),
+      Array.from(new Set(BUILT_IN_FORMATIONS.map((f) => f.pitchPlayerCount))).sort((a, b) => a - b),
       [5, 7, 9, 11]
     );
     for (const f of BUILT_IN_FORMATIONS) {

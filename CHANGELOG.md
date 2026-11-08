@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Android: "Unmatched Route (`subshuffle:///auth`)" after Google sign-in** — added `mobile/app/auth.tsx` (consumes the OAuth handoff tokens via `completeDeepLinkSignIn` and redirects to the Pitch tab) and a `mobile/app/+not-found.tsx` catch-all redirect, both registered in `mobile/app/_layout.tsx`.
+- **Android: Sub Scheduler crashed into Recovery Mode (`Cannot read property 'length' of undefined`)** — `MobileMatchdayContext.tsx` now passes the server's multi-strategy `/suggested-subs` response (`windows[].subChanges[]`) through `normalizeSuggestedSubPlans`, and the scheduler modal in `mobile/app/(tabs)/index.tsx` guards against missing `swaps`.
+- **Android: Pitch showed "Empty" for all outfield players and an empty bench on real fixtures** — `@subshuffle/shared` `BUILT_IN_FORMATIONS` now mirrors all 12 server formations and slot codes (`DEF_L`, `MID_C`, `ATT`, …); `normalizeMatchSquad` maps server `PeriodLineup.subs` ↔ `bench` and `playerOutId`/`playerInId` ↔ `offPlayerId`/`onPlayerId`; the pitch view falls back to index matching so no on-pitch player is ever hidden.
+- Mobile fixture/squad/post-match saves and server responses are now normalized both ways (including `/stats` via `normalizeMatchPlayerStats` and post-match `custom_minutes` → `exact`), so edits made on the phone stay compatible with the web app.
+
 ## [1.12.1] - 2026-11-08
 
 ### Added

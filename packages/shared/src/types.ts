@@ -101,6 +101,7 @@ export interface PeriodLineup {
   period: number;
   onPitch: PitchAssignment[];
   bench: string[];
+  subs?: string[];
 }
 
 export interface PlannedInGameSub {
@@ -110,7 +111,12 @@ export interface PlannedInGameSub {
   matchMinute: number;
   offPlayerId: string;
   onPlayerId: string;
+  playerOutId?: string;
+  playerOutName?: string;
+  playerInId?: string;
+  playerInName?: string;
   position: string;
+  reason?: string;
   executed?: boolean;
 }
 
@@ -150,8 +156,11 @@ export interface LiveMatchState {
 }
 
 export interface MatchSquad {
+  fixtureId?: string;
   selectedPlayerIds: string[];
+  restedPlayerIds?: string[];
   lineupsByPeriod: PeriodLineup[];
+  manualOverrides?: boolean;
   fixedPlayerPositions?: Record<string, string>;
   plannedInGameSubs?: PlannedInGameSub[];
   liveMatchState?: LiveMatchState;
@@ -180,8 +189,9 @@ export interface EarlyDeparture {
 }
 
 export interface PostMatchRecording {
-  trackingMode: 'full_credit' | 'custom_minutes';
+  trackingMode: 'full_credit' | 'custom_minutes' | 'exact';
   actualMinutesByPlayer: Record<string, number>;
+  playerMinutes?: Record<string, number>;
   recordedAt: string;
   notes?: string;
 }

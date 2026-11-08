@@ -361,6 +361,9 @@ Need help on matchday, want to suggest a grassroots feature, or spotted a bug on
 **Q: How do I install SubShuffle as an app on my phone?**  
 *A: SubShuffle is available both as an installable Progressive Web App (in Safari on iOS, tap Share -> **Add to Home Screen**; in Chrome on Android, tap **Install App**) and via the native React Native (Expo) mobile app (`mobile/`), which includes full coach account sign-in (Email/Password or 1-Tap Google Browser Handoff), pocket-safe background substitution notifications (`expo-notifications`), native haptic whistle feedback, high-contrast sunlight touchline mode, and automatic crash recovery protection. Android users can also download the standalone `subshuffle-v<version>.apk` installer directly from the repository's **GitHub Releases** page.*
 
+**Q: I signed in with Google on the Android app — what should happen?**  
+*A: Tap **Sign In with Google / Browser**, finish signing in on the web page, and your phone will hand you straight back to the SubShuffle app on the **Pitch** tab with your real teams, squads and fixtures loaded. The app shares the same formations, lineups, bench and scheduled substitutions as the web app, so anything you plan on your laptop appears on the touchline (and vice versa). If you ever land on an unexpected screen, the app will now redirect you back to the Pitch tab automatically.*
+
 **Q: Can multiple coaches manage the same team?**  
 *A: Yes. In the **Teams** tab, click **Share Team** and enter your assistant coach's email address. They will receive instant access to co-manage lineups and matchday substitutions.*
 

@@ -42,6 +42,8 @@ import {
   normalizeFixture,
   normalizeMatchSquad,
   normalizeDashboardSummary,
+  normalizeSuggestedSubPlans,
+  normalizeMatchPlayerStats,
 } from '../services/mobileDataNormalizer';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://subshuffle-beta.web.app';
@@ -57,7 +59,7 @@ const FALLBACK_TEAM: Team = {
     matchPeriodCount: 2,
     periodDurationMinutes: 25,
     targetGameTimePercent: 50,
-    defaultFormation: '2-3-1',
+    defaultFormation: '2-3-1 (Standard)',
     customFormations: [],
     currentSeason: '2026/2027',
     seasons: ['2026/2027'],
@@ -91,7 +93,7 @@ const FALLBACK_FIXTURE: Fixture = {
   opponent: 'Westgate Wanderers U10',
   venue: 'Home',
   status: 'Upcoming',
-  formation: '2-3-1',
+  formation: '2-3-1 (Standard)',
   homeScore: 2,
   awayScore: 1,
   playerOfTheMatchIds: ['p7', 'p1'],
@@ -104,27 +106,29 @@ const FALLBACK_FIXTURE: Fixture = {
         period: 1,
         onPitch: [
           { position: 'GK', playerId: 'p1' },
-          { position: 'LD', playerId: 'p2' },
-          { position: 'RD', playerId: 'p3' },
-          { position: 'LM', playerId: 'p4' },
-          { position: 'CM', playerId: 'p5' },
-          { position: 'RM', playerId: 'p6' },
-          { position: 'FWD', playerId: 'p7' },
+          { position: 'DEF_L', playerId: 'p2' },
+          { position: 'DEF_R', playerId: 'p3' },
+          { position: 'MID_L', playerId: 'p4' },
+          { position: 'MID_C', playerId: 'p5' },
+          { position: 'MID_R', playerId: 'p6' },
+          { position: 'ATT', playerId: 'p7' },
         ],
         bench: ['p8', 'p9'],
+        subs: ['p8', 'p9'],
       },
       {
         period: 2,
         onPitch: [
           { position: 'GK', playerId: 'p1' },
-          { position: 'LD', playerId: 'p9' },
-          { position: 'RD', playerId: 'p2' },
-          { position: 'LM', playerId: 'p8' },
-          { position: 'CM', playerId: 'p4' },
-          { position: 'RM', playerId: 'p5' },
-          { position: 'FWD', playerId: 'p6' },
+          { position: 'DEF_L', playerId: 'p9' },
+          { position: 'DEF_R', playerId: 'p2' },
+          { position: 'MID_L', playerId: 'p8' },
+          { position: 'MID_C', playerId: 'p4' },
+          { position: 'MID_R', playerId: 'p5' },
+          { position: 'ATT', playerId: 'p6' },
         ],
         bench: ['p3', 'p7'],
+        subs: ['p3', 'p7'],
       },
     ],
     plannedInGameSubs: [
@@ -135,7 +139,9 @@ const FALLBACK_FIXTURE: Fixture = {
         matchMinute: 10,
         offPlayerId: 'p4',
         onPlayerId: 'p8',
-        position: 'LM',
+        playerOutId: 'p4',
+        playerInId: 'p8',
+        position: 'MID_L',
         executed: false,
       },
       {
@@ -145,7 +151,9 @@ const FALLBACK_FIXTURE: Fixture = {
         matchMinute: 10,
         offPlayerId: 'p3',
         onPlayerId: 'p9',
-        position: 'RD',
+        playerOutId: 'p3',
+        playerInId: 'p9',
+        position: 'DEF_R',
         executed: false,
       },
     ],
@@ -172,6 +180,13 @@ interface MobileMatchdayContextType {
   registerWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   signInWithGoogleBrowser: () => Promise<void>;
+  completeDeepLinkSignIn: (params: {
+    idToken: string;
+    refreshToken?: string;
+    uid?: string;
+    email?: string;
+    displayName?: string;
+  }) => Promise<void>;
   enterDemoMode: () => void;
   signOut: () => Promise<void>;
   refreshAllData: () => Promise<void>;
@@ -323,23 +338,49 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
   const playerMap = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
 
   const availableFormations = useMemo(() => {
-    const pitchCount = activeFixture.pitchPlayerCount || activeTeam.settings.pitchPlayerCount || 7;
-    const builtIn = BUILT_IN_FORMATIONS.filter((f) => f.pitchPlayerCount === pitchCount);
+    const inferredPitchCount =
+      activeFixture.pitchPlayerCount ||
+      activeFixture.matchSquad?.lineupsByPeriod?.[0]?.onPitch?.length ||
+      activeTeam.settings.pitchPlayerCount ||
+      7;
+    const builtIn = BUILT_IN_FORMATIONS.filter(
+      (f) => (f.pitchPlayerCount || f.teamSize) === inferredPitchCount
+    );
     const custom = (activeTeam.settings.customFormations || []).filter(
-      (f) => (f.pitchPlayerCount || f.teamSize) === pitchCount
+      (f) => (f.pitchPlayerCount || f.teamSize) === inferredPitchCount
     );
     return [...builtIn, ...custom];
-  }, [activeFixture.pitchPlayerCount, activeTeam.settings.pitchPlayerCount, activeTeam.settings.customFormations]);
+  }, [
+    activeFixture.pitchPlayerCount,
+    activeFixture.matchSquad?.lineupsByPeriod,
+    activeTeam.settings.pitchPlayerCount,
+    activeTeam.settings.customFormations,
+  ]);
 
   const activeFormation = useMemo(() => {
-    const pitchCount = activeFixture.pitchPlayerCount || activeTeam.settings.pitchPlayerCount || 7;
+    const inferredPitchCount =
+      activeFixture.pitchPlayerCount ||
+      activeFixture.matchSquad?.lineupsByPeriod?.[0]?.onPitch?.length ||
+      activeTeam.settings.pitchPlayerCount ||
+      7;
     const formationName = activeFixture.formation || activeTeam.settings.defaultFormation;
     return (
-      availableFormations.find((f) => f.name === formationName) ||
-      BUILT_IN_FORMATIONS.find((f) => f.pitchPlayerCount === pitchCount) ||
-      BUILT_IN_FORMATIONS[1]
+      availableFormations.find(
+        (f) =>
+          f.id === formationName ||
+          f.name === formationName ||
+          (formationName && f.name.toLowerCase().startsWith(formationName.toLowerCase()))
+      ) ||
+      BUILT_IN_FORMATIONS.find((f) => (f.pitchPlayerCount || f.teamSize) === inferredPitchCount) ||
+      BUILT_IN_FORMATIONS[2]
     );
-  }, [availableFormations, activeFixture.formation, activeFixture.pitchPlayerCount, activeTeam.settings]);
+  }, [
+    availableFormations,
+    activeFixture.formation,
+    activeFixture.pitchPlayerCount,
+    activeFixture.matchSquad?.lineupsByPeriod,
+    activeTeam.settings,
+  ]);
 
   // Authenticated API helper with automatic token refresh
   const authFetch = useCallback(
@@ -582,7 +623,11 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
           if (res.ok && !cancelled) {
             const data = await res.json();
             if (Array.isArray(data.stats)) {
-              setMatchStats(data.stats);
+              const periodCount =
+                activeFixture.matchPeriodCount || activeTeam.settings.matchPeriodCount || 2;
+              setMatchStats(
+                normalizeMatchPlayerStats(data.stats, players, periodCount, targetPct)
+              );
             }
           }
         } catch {
@@ -594,7 +639,7 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
     return () => {
       cancelled = true;
     };
-  }, [activeFixture, activeTeam, playerMap, currentUser, authFetch]);
+  }, [activeFixture, activeTeam, playerMap, players, currentUser, authFetch]);
 
   // Tick live stopwatch and clamp at periodDurationSeconds
   useEffect(() => {
@@ -673,6 +718,33 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
   const signInWithGoogleBrowser = useCallback(async () => {
     await openGoogleBrowserSignIn(API_BASE_URL);
   }, []);
+
+  const completeDeepLinkSignIn = useCallback(
+    async (params: {
+      idToken: string;
+      refreshToken?: string;
+      uid?: string;
+      email?: string;
+      displayName?: string;
+    }) => {
+      if (!params.idToken) return;
+      const user: MobileAuthUser = {
+        uid: params.uid || 'user',
+        email: params.email || '',
+        displayName: params.displayName || undefined,
+        idToken: params.idToken,
+        refreshToken: params.refreshToken || '',
+        expiresAt: Date.now() + 50 * 60 * 1000,
+      };
+      await savePersistedPrefs({ user });
+      setCurrentUser(user);
+      setIsDemoMode(false);
+      setAuthReady(true);
+      flashSync(`Signed in as ${user.displayName || user.email || 'Coach'}`);
+      await refreshAllData(user);
+    },
+    [refreshAllData, flashSync]
+  );
 
   const enterDemoMode = useCallback(() => {
     setTeams([FALLBACK_TEAM]);
@@ -1048,19 +1120,21 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
 
   const updateFixture = useCallback(
     async (fixture: Fixture) => {
-      setFixtures((prev) => prev.map((f) => (f.id === fixture.id ? fixture : f)));
+      const normalizedLocal = normalizeFixture(fixture, activeTeam.id);
+      setFixtures((prev) => prev.map((f) => (f.id === fixture.id ? normalizedLocal : f)));
       if (!currentUser || fixture.id.startsWith('demo-')) return;
       const res = await authFetch(`/api/fixtures/${encodeURIComponent(fixture.id)}`, {
         method: 'PUT',
-        body: JSON.stringify(fixture),
+        body: JSON.stringify(normalizedLocal),
       });
       if (res.ok) {
         const saved: Fixture = await res.json();
-        setFixtures((prev) => prev.map((f) => (f.id === saved.id ? saved : f)));
+        const normalizedSaved = normalizeFixture(saved, activeTeam.id);
+        setFixtures((prev) => prev.map((f) => (f.id === normalizedSaved.id ? normalizedSaved : f)));
         flashSync('Fixture updated');
       }
     },
-    [currentUser, authFetch, flashSync]
+    [currentUser, activeTeam.id, authFetch, flashSync]
   );
 
   const deleteFixture = useCallback(
@@ -1079,23 +1153,25 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
 
   const updateMatchSquad = useCallback(
     async (matchSquad: MatchSquad) => {
+      const normalizedSquad = normalizeMatchSquad(matchSquad) || matchSquad;
       setFixtures((prev) =>
-        prev.map((f) => (f.id === activeFixture.id ? { ...f, matchSquad } : f))
+        prev.map((f) => (f.id === activeFixture.id ? { ...f, matchSquad: normalizedSquad } : f))
       );
       if (!currentUser || activeFixture.id.startsWith('demo-')) return;
       const res = await authFetch(
         `/api/fixtures/${encodeURIComponent(activeFixture.id)}/squad`,
         {
           method: 'PUT',
-          body: JSON.stringify(matchSquad),
+          body: JSON.stringify(normalizedSquad),
         }
       );
       if (res.ok) {
         const saved: Fixture = await res.json();
-        setFixtures((prev) => prev.map((f) => (f.id === saved.id ? saved : f)));
+        const normalizedSaved = normalizeFixture(saved, activeTeam.id);
+        setFixtures((prev) => prev.map((f) => (f.id === normalizedSaved.id ? normalizedSaved : f)));
       }
     },
-    [activeFixture.id, currentUser, authFetch]
+    [activeFixture.id, activeTeam.id, currentUser, authFetch]
   );
 
   const setMatchCaptain = useCallback(
@@ -1318,7 +1394,10 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
           if (res.ok) {
             const data = await res.json();
             if (data.fixture) {
-              setFixtures((prev) => prev.map((f) => (f.id === data.fixture.id ? data.fixture : f)));
+              const normalizedFix = normalizeFixture(data.fixture, activeTeam.id);
+              setFixtures((prev) =>
+                prev.map((f) => (f.id === normalizedFix.id ? normalizedFix : f))
+              );
               flashSync('Fair rotation generated & saved');
               return;
             }
@@ -1381,6 +1460,8 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
       subsPerWindow: SubsPerWindowOption,
       ensureEveryoneSubbedOnce: boolean
     ): Promise<SuggestedSubPlan[]> => {
+      const periodDur =
+        activeFixture.periodDurationMinutes || activeTeam.settings.periodDurationMinutes || 25;
       if (currentUser && !activeFixture.id.startsWith('demo-')) {
         const qs = `interval=${encodeURIComponent(
           String(intervalMinutes)
@@ -1392,13 +1473,15 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
         );
         if (res.ok) {
           const data = await res.json();
-          return Array.isArray(data?.plans) ? data.plans : [];
+          const normalized = normalizeSuggestedSubPlans(data?.plans, periodDur);
+          if (normalized.length > 0) {
+            return normalized;
+          }
         }
       }
 
       // Local fallback suggested sub generator
       const plans: SuggestedSubPlan[] = [];
-      const periodDur = activeFixture.periodDurationMinutes || activeTeam.settings.periodDurationMinutes || 25;
       for (const lp of activeFixture.matchSquad?.lineupsByPeriod || []) {
         if (lp.bench.length === 0) continue;
         const outfield = lp.onPitch.filter((op) => op.position !== 'GK');
@@ -1526,7 +1609,10 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
         if (res.ok) {
           const data = await res.json();
           if (data.fixture) {
-            setFixtures((prev) => prev.map((f) => (f.id === data.fixture.id ? data.fixture : f)));
+            const normalizedFix = normalizeFixture(data.fixture, activeTeam.id);
+            setFixtures((prev) =>
+              prev.map((f) => (f.id === normalizedFix.id ? normalizedFix : f))
+            );
             flashSync('Remaining periods rebalanced for early departure');
             return;
           }
@@ -1629,43 +1715,52 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
       if (res.ok) {
         const data = await res.json();
         if (data.fixture) {
-          setFixtures((prev) => prev.map((f) => (f.id === data.fixture.id ? data.fixture : f)));
+          const normalizedFix = normalizeFixture(data.fixture, activeTeam.id);
+          setFixtures((prev) => prev.map((f) => (f.id === normalizedFix.id ? normalizedFix : f)));
         }
         if (Array.isArray(data.updatedPlayers)) {
-          setPlayers(data.updatedPlayers);
+          setPlayers(data.updatedPlayers.map((p: any) => normalizePlayer(p, activeTeam.id)));
         }
         flashSync('Match score & scorers saved');
       }
     },
-    [activeFixture.id, currentUser, authFetch, flashSync]
+    [activeFixture.id, activeTeam.id, currentUser, authFetch, flashSync]
   );
 
   const savePostMatchRecording = useCallback(
     async (recording: PostMatchRecording, targetFixtureId?: string) => {
       const fixId = targetFixtureId || activeFixture.id;
+      const serverPayload: PostMatchRecording = {
+        ...recording,
+        trackingMode:
+          recording.trackingMode === 'custom_minutes' ? 'exact' : recording.trackingMode,
+        playerMinutes: recording.actualMinutesByPlayer || recording.playerMinutes,
+        actualMinutesByPlayer: recording.actualMinutesByPlayer || recording.playerMinutes,
+      };
       setFixtures((prev) =>
         prev.map((f) =>
-          f.id === fixId ? { ...f, status: 'Completed', postMatchRecording: recording } : f
+          f.id === fixId ? { ...f, status: 'Completed', postMatchRecording: serverPayload } : f
         )
       );
 
       if (!currentUser || fixId.startsWith('demo-')) return;
       const res = await authFetch(`/api/fixtures/${encodeURIComponent(fixId)}/post-match`, {
         method: 'PUT',
-        body: JSON.stringify(recording),
+        body: JSON.stringify(serverPayload),
       });
       if (res.ok) {
         const data = await res.json();
         if (data.fixture) {
-          setFixtures((prev) => prev.map((f) => (f.id === data.fixture.id ? data.fixture : f)));
+          const normalizedFix = normalizeFixture(data.fixture, activeTeam.id);
+          setFixtures((prev) => prev.map((f) => (f.id === normalizedFix.id ? normalizedFix : f)));
         }
         if (Array.isArray(data.updatedPlayers)) {
-          setPlayers(data.updatedPlayers);
+          setPlayers(data.updatedPlayers.map((p: any) => normalizePlayer(p, activeTeam.id)));
         }
         flashSync('Match completed & player minutes recorded!');
       }
     },
-    [activeFixture.id, currentUser, authFetch, flashSync]
+    [activeFixture.id, activeTeam.id, currentUser, authFetch, flashSync]
   );
 
   // ================= Exports & Support =================
@@ -1788,6 +1883,7 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
         registerWithEmail,
         sendPasswordReset,
         signInWithGoogleBrowser,
+        completeDeepLinkSignIn,
         enterDemoMode,
         signOut,
         refreshAllData: () => refreshAllData(),
