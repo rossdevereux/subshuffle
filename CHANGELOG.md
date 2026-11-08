@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Automated Android APK Build & GitHub Release Artifact Attachment** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
-  - Enhanced [`.github/workflows/mobile-eas.yml`](.github/workflows/mobile-eas.yml) to automatically prebuild (`npx expo prebuild --platform android --no-install`) and compile a standalone Android `.apk` (`./gradlew assembleRelease`) on `ubuntu-latest`, uploading `subshuffle-v<version>.apk` (or `subshuffle-v<version>-beta.apk` on `beta`) both as a GitHub Actions run artifact and directly onto GitHub Releases (`gh release upload` / `gh release create`).
+  - Enhanced [`.github/workflows/mobile-eas.yml`](.github/workflows/mobile-eas.yml) to automatically prebuild (`npx expo prebuild --platform android --no-install`) and compile a standalone `arm64-v8a` Android `.apk` (`./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --build-cache`) on `ubuntu-latest`, uploading `subshuffle-v<version>.apk` (or `subshuffle-v<version>-beta.apk` on `beta`) both as a GitHub Actions run artifact and directly onto GitHub Releases (`gh release upload` / `gh release create`).
   - Linked [`mobile/app.json`](mobile/app.json) (`projectId: "eafdca34-5782-4c42-aa95-2c87f5768e21"`, `owner: "rossdevereuxs-team"`, `runtimeVersion`, `updates.url`, `icon`, `splash.image`, and `android.adaptiveIcon.foregroundImage`) with official SubShuffle icon/splash assets (`mobile/assets/`) and added `expo-updates` (`~0.27.4`) to [`mobile/package.json`](mobile/package.json).
 
 ### Fixed

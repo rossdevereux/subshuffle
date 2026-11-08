@@ -104,7 +104,7 @@ jobs:
           npx expo prebuild --platform android --no-install
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --build-cache --no-daemon
           cp app/build/outputs/apk/release/app-release.apk "../${{ steps.meta.outputs.apk_name }}"
 
       - name: Upload APK to GitHub Actions Run Artifacts
