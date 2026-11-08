@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.12.1] - 2026-11-08
+
+### Fixed
+- **Automated Mobile & Cloud Build Pipeline**:
+  - Added automated Expo Application Services (EAS) cloud build, Over-The-Air (OTA) update, and App Store / Google Play submission pipelines alongside Docker build optimizations.
+
 ## [1.12.0] - 2026-11-08
 
 ### Added

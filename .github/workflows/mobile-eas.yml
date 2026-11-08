@@ -98,3 +98,4 @@ jobs:
             SUBMIT_FLAG="--auto-submit"
           fi
           eas build --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" $SUBMIT_FLAG --non-interactive --no-wait
+
