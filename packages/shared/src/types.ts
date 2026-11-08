@@ -29,8 +29,17 @@ export interface Formation {
   id: string;
   name: string;
   pitchPlayerCount: number;
+  teamSize?: number;
   isCustom?: boolean;
   positions: FormationPosition[];
+  slots?: any[];
+}
+
+export interface TeamShareMember {
+  email: string;
+  userId?: string;
+  role?: 'coach' | 'viewer';
+  sharedAt?: string;
 }
 
 export interface TeamSettings {
@@ -48,6 +57,7 @@ export interface TeamSettings {
   subTimingMode?: SubstitutionTimingMode;
   preserveLineupAcrossBreaks?: boolean;
   midPeriodSubIntervalMinutes?: number;
+  enforceEveryoneRestsOnce?: boolean;
   kitPrimaryColor?: string;
   kitSecondaryColor?: string;
 }
@@ -58,9 +68,10 @@ export interface Team {
   ageGroup: string;
   ownerId?: string;
   ownerEmail?: string;
-  sharedWith?: string[];
+  sharedWith?: Array<string | TeamShareMember>;
   settings: TeamSettings;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Player {
@@ -70,9 +81,15 @@ export interface Player {
   squadNumber?: number;
   preferredPositions: PositionCategory[];
   specificPositions?: SpecificPosition[];
+  isFixedPosition?: boolean;
+  fixedPosition?: string;
   unavailableDates: string[];
+  signOnDate?: string;
+  leaveDate?: string;
   matchesPlayed: number;
   totalMinutesPlayed: number;
+  captainCount?: number;
+  playerOfTheMatchCount?: number;
 }
 
 export interface PitchAssignment {
@@ -111,16 +128,24 @@ export interface InGameSubLog {
   period: number;
   minute: number;
   matchMinute?: number;
+  time?: string;
   offPlayerId: string;
+  offPlayerName?: string;
   onPlayerId: string;
-  position: string;
+  onPlayerName?: string;
+  position?: string;
+  text?: string;
   timestamp: string;
 }
 
 export interface LiveMatchState {
   currentPeriod: number;
-  periodTimers: LiveMatchPeriodTimer[];
-  subLogs: InGameSubLog[];
+  isRunning?: boolean;
+  elapsedSeconds?: number;
+  startedAt?: string | number;
+  periodTimers?: LiveMatchPeriodTimer[];
+  subLogs?: InGameSubLog[];
+  subLog?: InGameSubLog[];
   updatedAt?: string;
 }
 
@@ -135,10 +160,92 @@ export interface MatchSquad {
 export interface GoalScorer {
   id: string;
   playerId?: string;
-  playerName: string;
+  playerName?: string;
   minute?: number | string;
   isOwnGoal?: boolean;
   team: 'home' | 'away';
+}
+
+export interface EarlyDeparture {
+  playerId: string;
+  playerName: string;
+  period: number;
+  minute: number;
+  matchMinute: number;
+  reason: 'injured' | 'left_early' | 'unwell';
+  replacedByPlayerId?: string;
+  replacedByPlayerName?: string;
+  departedAt: string;
+  proRatedMinutes: number;
+}
+
+export interface PostMatchRecording {
+  trackingMode: 'full_credit' | 'custom_minutes';
+  actualMinutesByPlayer: Record<string, number>;
+  recordedAt: string;
+  notes?: string;
+}
+
+export interface SuggestedSubSwap {
+  offPlayerId: string;
+  offPlayerName: string;
+  onPlayerId: string;
+  onPlayerName: string;
+  position: string;
+  reason?: string;
+}
+
+export interface SuggestedSubPlan {
+  period: number;
+  minuteMark: number;
+  periodMinute: number;
+  swaps: SuggestedSubSwap[];
+}
+
+export interface MatchPlayerStats {
+  playerId: string;
+  playerName: string;
+  squadNumber?: number;
+  periodsOnPitch: number;
+  periodsOnBench: number;
+  totalMinutes: number;
+  percentOfMatch: number;
+  positionsPlayed: string[];
+  meetsTarget: boolean;
+}
+
+export interface SeasonDashboardSummary {
+  teamId: string;
+  season: string;
+  matchesPlayed: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  winRatePercent: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  topScorers: Array<{
+    playerId: string;
+    playerName: string;
+    squadNumber?: number;
+    goals: number;
+  }>;
+  potmLeaders: Array<{
+    playerId: string;
+    playerName: string;
+    squadNumber?: number;
+    awards: number;
+  }>;
+  recentFixtures: Array<{
+    fixtureId: string;
+    date: string;
+    opponent: string;
+    venue: 'Home' | 'Away';
+    homeScore: number;
+    awayScore: number;
+    result: 'W' | 'D' | 'L';
+  }>;
 }
 
 export interface Fixture {
@@ -166,10 +273,15 @@ export interface Fixture {
   preserveLineupAcrossBreaks?: boolean;
   midPeriodSubIntervalMinutes?: number;
   matchSquad?: MatchSquad;
+  liveMatchState?: LiveMatchState;
+  earlyDepartures?: EarlyDeparture[];
+  postMatchRecording?: PostMatchRecording;
   homeScore?: number;
   awayScore?: number;
   scorers?: GoalScorer[];
   isLive?: boolean;
+  version?: number;
+  updatedAt?: string;
 }
 
 /**
@@ -185,4 +297,3 @@ export function getFixturePotmIds(fixture?: Partial<Fixture> | null): string[] {
   }
   return [];
 }
-

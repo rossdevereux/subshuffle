@@ -1,12 +1,30 @@
-import React, { useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Modal,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { GoalScorer, getFixturePotmIds } from '@subshuffle/shared';
 import { useMobileMatchday } from '../src/context/MobileMatchdayContext';
 
-export default function LiveMatchModalScreen() {
+function formatStopwatch(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+export default function LiveMatchScreen() {
+  const router = useRouter();
   const {
+    activeTeam,
     activeFixture,
     players,
     activePeriod,
+    setActivePeriod,
     isTimerRunning,
     elapsedSeconds,
     periodDurationSeconds,
@@ -14,207 +32,649 @@ export default function LiveMatchModalScreen() {
     togglePeriodTimer,
     resetPeriodTimer,
     executePlannedSub,
-    sunlightMode,
-    setSunlightMode,
+    updateFixtureScore,
+    setPlayerOfTheMatch,
+    savePostMatchRecording,
   } = useMobileMatchday();
 
-  const playerMap = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
-
-  const mins = Math.floor(elapsedSeconds / 60);
-  const secs = elapsedSeconds % 60;
-  const formattedClock = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-
-  const unexecutedSubs = useMemo(
-    () =>
-      (activeFixture.matchSquad?.plannedInGameSubs || []).filter(
-        (s) => s.period === activePeriod && !s.executed
-      ),
-    [activeFixture.matchSquad?.plannedInGameSubs, activePeriod]
+  const [goalScorerModalOpen, setGoalScorerModalOpen] = useState(false);
+  const [completeModalOpen, setCompleteModalOpen] = useState(false);
+  const [selectedPotmIds, setSelectedPotmIds] = useState<string[]>(() =>
+    getFixturePotmIds(activeFixture)
   );
 
+  const playerMap = new Map(players.map((p) => [p.id, p]));
+  const periodCount =
+    activeFixture.matchPeriodCount || activeTeam.settings.matchPeriodCount || 2;
+  const plannedSubs = (activeFixture.matchSquad?.plannedInGameSubs || []).filter(
+    (s) => s.period === activePeriod
+  );
+
+  const homeScore = activeFixture.homeScore ?? 0;
+  const awayScore = activeFixture.awayScore ?? 0;
+  const ourSide: 'home' | 'away' = activeFixture.venue === 'Home' ? 'home' : 'away';
+
+  const adjustScore = async (side: 'home' | 'away', delta: number) => {
+    const nextHome = side === 'home' ? Math.max(0, homeScore + delta) : homeScore;
+    const nextAway = side === 'away' ? Math.max(0, awayScore + delta) : awayScore;
+    await updateFixtureScore(nextHome, nextAway, activeFixture.scorers, 'In Progress', true);
+    if (delta > 0 && side === ourSide) {
+      setGoalScorerModalOpen(true);
+    }
+  };
+
+  const attributeGoalToPlayer = async (player: { id: string; name: string }) => {
+    const curMin = Math.max(1, Math.floor(elapsedSeconds / 60));
+    const newScorer: GoalScorer = {
+      id: `sc_${Date.now()}`,
+      playerId: player.id,
+      playerName: player.name,
+      minute: curMin,
+      team: ourSide,
+    };
+    const nextScorers = [...(activeFixture.scorers || []), newScorer];
+    await updateFixtureScore(homeScore, awayScore, nextScorers, 'In Progress', true);
+    setGoalScorerModalOpen(false);
+  };
+
+  const handleFinishMatch = async () => {
+    await updateFixtureScore(homeScore, awayScore, activeFixture.scorers, 'Completed', false);
+    await setPlayerOfTheMatch(selectedPotmIds);
+    await savePostMatchRecording({
+      trackingMode: 'full_credit',
+      actualMinutesByPlayer: {},
+      recordedAt: new Date().toISOString(),
+    });
+    setCompleteModalOpen(false);
+    router.back();
+  };
+
   return (
-    <ScrollView
-      style={[styles.container, sunlightMode && styles.sunlightContainer]}
-      contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={styles.content}
-    >
-      {/* Top Bar: Sunlight Mode Toggle & Background Alarm Badge */}
-      <View style={styles.topRow}>
-        <View style={styles.alarmBadge}>
-          <Text style={styles.alarmBadgeText}>
-            🔔 {scheduledAlarmsCount > 0 ? `${scheduledAlarmsCount} Pocket Alarms Armed` : 'Pocket Whistle Ready'}
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.topBar}>
+        <View>
+          <Text style={styles.liveTag}>🔴 LIVE TOUCHLINE CONSOLE</Text>
+          <Text style={styles.matchupText}>
+            {activeTeam.name} vs {activeFixture.opponent}
           </Text>
         </View>
-        <Pressable
-          onPress={() => setSunlightMode(!sunlightMode)}
-          style={styles.sunlightBtn}
-        >
-          <Text style={styles.sunlightBtnText}>
-            {sunlightMode ? '🌙 Dark Mode' : '☀️ Sunlight Mode'}
-          </Text>
+        <Pressable style={styles.closeBtn} onPress={() => router.back()}>
+          <Text style={styles.closeBtnText}>✕ Exit</Text>
         </Pressable>
       </View>
 
-      {/* Giant Pitchside Stopwatch */}
-      <View style={[styles.clockCard, sunlightMode && styles.sunlightCard]}>
-        <Text style={[styles.periodLabel, sunlightMode && styles.sunlightText]}>
-          PERIOD {activePeriod} • VS {activeFixture.opponent.toUpperCase()}
-        </Text>
-        <Text style={[styles.clockDigits, sunlightMode && styles.sunlightText]}>
-          {formattedClock}
-        </Text>
-        <Text style={styles.targetText}>
-          Target Period Length: {Math.floor(periodDurationSeconds / 60)}:00 (Auto-stops at full time)
-        </Text>
+      {/* Live Scoreboard */}
+      <View style={styles.scoreboardCard}>
+        <View style={styles.scoreCol}>
+          <Text style={styles.scoreTeamName} numberOfLines={1}>
+            {activeFixture.venue === 'Home' ? activeTeam.name : activeFixture.opponent}
+          </Text>
+          <View style={styles.scoreControls}>
+            <Pressable style={styles.scoreBtn} onPress={() => adjustScore('home', -1)}>
+              <Text style={styles.scoreBtnText}>-</Text>
+            </Pressable>
+            <Text style={styles.scoreNumber}>{homeScore}</Text>
+            <Pressable style={styles.scoreBtnAdd} onPress={() => adjustScore('home', 1)}>
+              <Text style={styles.scoreBtnAddText}>+</Text>
+            </Pressable>
+          </View>
+        </View>
 
-        <View style={styles.clockControls}>
+        <Text style={styles.scoreVs}>:</Text>
+
+        <View style={styles.scoreCol}>
+          <Text style={styles.scoreTeamName} numberOfLines={1}>
+            {activeFixture.venue === 'Away' ? activeTeam.name : activeFixture.opponent}
+          </Text>
+          <View style={styles.scoreControls}>
+            <Pressable style={styles.scoreBtn} onPress={() => adjustScore('away', -1)}>
+              <Text style={styles.scoreBtnText}>-</Text>
+            </Pressable>
+            <Text style={styles.scoreNumber}>{awayScore}</Text>
+            <Pressable style={styles.scoreBtnAdd} onPress={() => adjustScore('away', 1)}>
+              <Text style={styles.scoreBtnAddText}>+</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      {/* Period Switcher */}
+      <View style={styles.periodRow}>
+        {Array.from({ length: periodCount }, (_, i) => i + 1).map((p) => (
           <Pressable
-            onPress={togglePeriodTimer}
-            style={[styles.primaryClockBtn, isTimerRunning && styles.pauseBtn]}
+            key={p}
+            style={[styles.periodPill, activePeriod === p && styles.periodPillActive]}
+            onPress={async () => {
+              await resetPeriodTimer();
+              setActivePeriod(p);
+            }}
           >
-            <Text style={styles.primaryClockBtnText}>
-              {isTimerRunning ? '⏸ Pause Stopwatch' : '▶ Start Period (Arm Pocket Alarms)'}
+            <Text
+              style={[
+                styles.periodPillText,
+                activePeriod === p && styles.periodPillTextActive,
+              ]}
+            >
+              {periodCount === 2 ? (p === 1 ? '1st Half' : '2nd Half') : `Period ${p}`}
             </Text>
           </Pressable>
-          <Pressable onPress={resetPeriodTimer} style={styles.resetBtn}>
+        ))}
+      </View>
+
+      {/* Pocket-Safe Stopwatch */}
+      <View style={styles.timerCard}>
+        <Text style={styles.periodLabel}>
+          PERIOD {activePeriod} • TARGET {Math.floor(periodDurationSeconds / 60)}:00
+        </Text>
+        <Text style={styles.stopwatchDigits}>{formatStopwatch(elapsedSeconds)}</Text>
+
+        <View style={styles.alarmStatusBanner}>
+          <Text style={styles.alarmStatusText}>
+            {isTimerRunning
+              ? `🔔 ${scheduledAlarmsCount} OS Background Alarm(s) Armed (Pocket-Safe)`
+              : '⏸️ Start timer to arm background substitution & whistle alarms'}
+          </Text>
+        </View>
+
+        <View style={styles.timerControls}>
+          <Pressable
+            style={[styles.mainTimerBtn, isTimerRunning && styles.pauseTimerBtn]}
+            onPress={togglePeriodTimer}
+          >
+            <Text style={styles.mainTimerBtnText}>
+              {isTimerRunning ? '⏸️ Pause Clock' : '▶️ Start Period Clock'}
+            </Text>
+          </Pressable>
+          <Pressable style={styles.resetBtn} onPress={resetPeriodTimer}>
             <Text style={styles.resetBtnText}>↺ Reset</Text>
           </Pressable>
         </View>
       </View>
 
-      {/* Scheduled Mid-Game Rolling Substitutions */}
+      {/* Scheduled Rolling Substitutions */}
       <View style={styles.subsSection}>
-        <Text style={[styles.sectionHeading, sunlightMode && styles.sunlightText]}>
-          Scheduled Rolling Substitutions ({unexecutedSubs.length})
+        <Text style={styles.sectionTitle}>
+          Scheduled Substitutions (Period {activePeriod})
         </Text>
-        {unexecutedSubs.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>All scheduled substitutions for Period {activePeriod} have been completed.</Text>
-          </View>
-        ) : (
-          unexecutedSubs.map((sub) => {
-            const offPlayer = playerMap.get(sub.offPlayerId);
-            const onPlayer = playerMap.get(sub.onPlayerId);
-            return (
-              <View key={sub.id} style={[styles.subCard, sunlightMode && styles.sunlightCard]}>
-                <View style={styles.subInfo}>
-                  <Text style={styles.subMinute}>{sub.matchMinute}' ({sub.position})</Text>
-                  <Text style={[styles.subSwapText, sunlightMode && styles.sunlightText]}>
-                    🔻 OFF: {offPlayer?.name || sub.offPlayerId} ➔ 🟢 ON: {onPlayer?.name || sub.onPlayerId}
+
+        {plannedSubs.map((sub) => {
+          const offPlayer = playerMap.get(sub.offPlayerId);
+          const onPlayer = playerMap.get(sub.onPlayerId);
+          const isDue = elapsedSeconds >= sub.targetMinute * 60 && !sub.executed;
+
+          return (
+            <View
+              key={sub.id}
+              style={[
+                styles.subCard,
+                isDue && styles.subCardDue,
+                sub.executed && styles.subCardDone,
+              ]}
+            >
+              <View style={styles.subInfo}>
+                <Text style={styles.subMinuteBadge}>{sub.targetMinute}&apos;</Text>
+                <View>
+                  <Text style={styles.subOnText}>🟢 ON: {onPlayer?.name || sub.onPlayerId}</Text>
+                  <Text style={styles.subOffText}>
+                    🔴 OFF: {offPlayer?.name || sub.offPlayerId} ({sub.position})
                   </Text>
                 </View>
-                <Pressable
-                  onPress={() => executePlannedSub(sub)}
-                  style={styles.execBtn}
-                >
-                  <Text style={styles.execBtnText}>Execute Sub</Text>
-                </Pressable>
               </View>
-            );
-          })
+
+              <Pressable
+                disabled={sub.executed}
+                onPress={() => executePlannedSub(sub)}
+                style={[styles.execSubBtn, sub.executed && styles.execSubBtnDone]}
+              >
+                <Text style={styles.execSubBtnText}>
+                  {sub.executed ? '✓ Done' : '⚡ Sub Now'}
+                </Text>
+              </Pressable>
+            </View>
+          );
+        })}
+
+        {plannedSubs.length === 0 && (
+          <Text style={styles.emptySubText}>
+            No rolling subs scheduled for Period {activePeriod}. Use "⏱️ Sub Scheduler" on the Pitch
+            tab to generate a plan.
+          </Text>
         )}
       </View>
+
+      {/* Complete Match Button */}
+      <Pressable
+        style={styles.completeMatchBtn}
+        onPress={() => {
+          setSelectedPotmIds(getFixturePotmIds(activeFixture));
+          setCompleteModalOpen(true);
+        }}
+      >
+        <Text style={styles.completeMatchBtnText}>
+          🏁 Complete Match & Award Player(s) of the Match
+        </Text>
+      </Pressable>
+
+      {/* Goal Scorer Attribution Modal */}
+      <Modal visible={goalScorerModalOpen} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>⚽ Who Scored the Goal?</Text>
+            <View style={styles.pillGrid}>
+              {players.map((p) => (
+                <Pressable
+                  key={p.id}
+                  style={styles.playerChip}
+                  onPress={() => attributeGoalToPlayer(p)}
+                >
+                  <Text style={styles.playerChipText}>
+                    #{p.squadNumber ?? '-'} {p.name}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <Pressable
+              style={styles.cancelBtn}
+              onPress={() => setGoalScorerModalOpen(false)}
+            >
+              <Text style={styles.cancelBtnText}>Skip Scorer Attribution</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Complete Match & Award Joint POTM Modal */}
+      <Modal visible={completeModalOpen} transparent animationType="slide">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>
+              🏁 Full Time ({homeScore} - {awayScore}) — Award POTM
+            </Text>
+            <Text style={styles.subHint}>
+              Select one or multiple joint Players of the Match:
+            </Text>
+            <View style={styles.pillGrid}>
+              {players.map((p) => {
+                const selected = selectedPotmIds.includes(p.id);
+                return (
+                  <Pressable
+                    key={p.id}
+                    style={[styles.playerChip, selected && styles.playerChipSelected]}
+                    onPress={() =>
+                      setSelectedPotmIds((prev) =>
+                        prev.includes(p.id)
+                          ? prev.filter((id) => id !== p.id)
+                          : [...prev, p.id]
+                      )
+                    }
+                  >
+                    <Text style={styles.playerChipText}>
+                      {selected ? '🏆 ' : ''}
+                      {p.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable style={styles.finishConfirmBtn} onPress={handleFinishMatch}>
+              <Text style={styles.finishConfirmText}>
+                ✅ Save Final Result, POTM & Player Minutes
+              </Text>
+            </Pressable>
+            <Pressable
+              style={styles.cancelBtn}
+              onPress={() => setCompleteModalOpen(false)}
+            >
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020617' },
-  sunlightContainer: { backgroundColor: '#ffffff' },
-  content: { padding: 16, gap: 16, paddingBottom: 40 },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  alarmBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.35)',
-  },
-  alarmBadgeText: { color: '#34d399', fontSize: 11, fontWeight: '800' },
-  sunlightBtn: {
-    backgroundColor: '#1e293b',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  sunlightBtnText: { color: '#f8fafc', fontSize: 11, fontWeight: '700' },
-  clockCard: {
-    backgroundColor: '#0f172a',
-    borderRadius: 24,
-    borderCurve: 'continuous',
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1e293b',
-    gap: 8,
-  },
-  sunlightCard: { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' },
-  sunlightText: { color: '#020617' },
-  periodLabel: { color: '#34d399', fontSize: 12, fontWeight: '800', letterSpacing: 1 },
-  clockDigits: {
-    color: '#ffffff',
-    fontSize: 64,
-    fontWeight: '900',
-    fontVariant: ['tabular-nums'],
-  },
-  targetText: { color: '#94a3b8', fontSize: 12 },
-  clockControls: { flexDirection: 'row', gap: 10, marginTop: 12, width: '100%' },
-  primaryClockBtn: {
+  container: {
     flex: 1,
-    backgroundColor: '#10b981',
-    paddingVertical: 14,
-    borderRadius: 16,
-    borderCurve: 'continuous',
-    alignItems: 'center',
+    backgroundColor: '#020617',
   },
-  pauseBtn: { backgroundColor: '#f59e0b' },
-  primaryClockBtnText: { color: '#022c22', fontWeight: '900', fontSize: 14 },
-  resetBtn: {
-    backgroundColor: '#1e293b',
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    borderRadius: 16,
-    borderCurve: 'continuous',
-  },
-  resetBtnText: { color: '#cbd5e1', fontWeight: '700', fontSize: 13 },
-  subsSection: { gap: 10 },
-  sectionHeading: { color: '#f8fafc', fontSize: 15, fontWeight: '800' },
-  emptyCard: {
-    backgroundColor: '#0f172a',
-    borderRadius: 16,
+  content: {
     padding: 16,
-    borderWidth: 1,
-    borderColor: '#1e293b',
+    paddingTop: 52,
+    paddingBottom: 36,
   },
-  emptyText: { color: '#94a3b8', fontSize: 13 },
-  subCard: {
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  liveTag: {
+    color: '#ef4444',
+    fontWeight: '900',
+    fontSize: 12,
+    letterSpacing: 0.8,
+  },
+  matchupText: {
+    color: '#f8fafc',
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  closeBtn: {
+    backgroundColor: '#1e293b',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  closeBtnText: {
+    color: '#f8fafc',
+    fontWeight: '800',
+  },
+  scoreboardCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
     backgroundColor: '#0f172a',
     borderRadius: 16,
-    borderCurve: 'continuous',
     padding: 14,
     borderWidth: 1,
     borderColor: '#1e293b',
+    marginBottom: 12,
   },
-  subInfo: { flex: 1, gap: 3 },
-  subMinute: {
-    color: '#fbbf24',
+  scoreCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  scoreTeamName: {
+    color: '#94a3b8',
+    fontSize: 11,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  scoreControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  scoreBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#1e293b',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreBtnText: {
+    color: '#cbd5e1',
+    fontSize: 18,
     fontWeight: '900',
-    fontSize: 12,
-    fontVariant: ['tabular-nums'],
   },
-  subSwapText: { color: '#ffffff', fontWeight: '700', fontSize: 13 },
-  execBtn: {
+  scoreBtnAdd: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreBtnAddText: {
+    color: '#022c22',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  scoreNumber: {
+    color: '#f8fafc',
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  scoreVs: {
+    color: '#64748b',
+    fontSize: 24,
+    fontWeight: '900',
+    paddingHorizontal: 8,
+  },
+  periodRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  periodPill: {
+    flex: 1,
+    backgroundColor: '#0f172a',
+    paddingVertical: 9,
+    borderRadius: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1e293b',
+  },
+  periodPillActive: {
+    backgroundColor: '#064e3b',
+    borderColor: '#10b981',
+  },
+  periodPillText: {
+    color: '#94a3b8',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  periodPillTextActive: {
+    color: '#10b981',
+    fontWeight: '900',
+  },
+  timerCard: {
+    backgroundColor: '#0f172a',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#1e293b',
+    marginBottom: 16,
+  },
+  periodLabel: {
+    color: '#38bdf8',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  stopwatchDigits: {
+    color: '#f8fafc',
+    fontSize: 60,
+    fontWeight: '900',
+    fontVariant: ['tabular-nums'],
+    marginVertical: 6,
+  },
+  alarmStatusBanner: {
+    backgroundColor: '#064e3b',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginBottom: 14,
+  },
+  alarmStatusText: {
+    color: '#a7f3d0',
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  timerControls: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  mainTimerBtn: {
+    flex: 1,
+    backgroundColor: '#10b981',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  pauseTimerBtn: {
+    backgroundColor: '#f59e0b',
+  },
+  mainTimerBtnText: {
+    color: '#022c22',
+    fontWeight: '900',
+    fontSize: 15,
+  },
+  resetBtn: {
+    backgroundColor: '#1e293b',
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  resetBtnText: {
+    color: '#cbd5e1',
+    fontWeight: '800',
+  },
+  subsSection: {
+    marginTop: 4,
+  },
+  sectionTitle: {
+    color: '#f8fafc',
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 10,
+  },
+  subCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#0f172a',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#1e293b',
+    marginBottom: 10,
+  },
+  subCardDue: {
+    borderColor: '#f59e0b',
+    backgroundColor: '#451a03',
+  },
+  subCardDone: {
+    opacity: 0.55,
+  },
+  subInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  subMinuteBadge: {
+    color: '#38bdf8',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  subOnText: {
+    color: '#4ade80',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  subOffText: {
+    color: '#f87171',
+    fontWeight: '700',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  execSubBtn: {
     backgroundColor: '#10b981',
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 12,
-    borderCurve: 'continuous',
+    borderRadius: 10,
   },
-  execBtnText: { color: '#022c22', fontWeight: '900', fontSize: 12 },
+  execSubBtnDone: {
+    backgroundColor: '#334155',
+  },
+  execSubBtnText: {
+    color: '#022c22',
+    fontWeight: '900',
+    fontSize: 12,
+  },
+  emptySubText: {
+    color: '#64748b',
+    fontSize: 12,
+    fontStyle: 'italic',
+    marginBottom: 10,
+  },
+  completeMatchBtn: {
+    backgroundColor: '#0284c7',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  completeMatchBtnText: {
+    color: '#f8fafc',
+    fontWeight: '900',
+    fontSize: 14,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(2, 6, 23, 0.88)',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    backgroundColor: '#0f172a',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  modalTitle: {
+    color: '#f8fafc',
+    fontSize: 16,
+    fontWeight: '900',
+    marginBottom: 8,
+  },
+  subHint: {
+    color: '#94a3b8',
+    fontSize: 12,
+    marginBottom: 10,
+  },
+  pillGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 12,
+  },
+  playerChip: {
+    backgroundColor: '#020617',
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  playerChipSelected: {
+    backgroundColor: '#78350f',
+    borderColor: '#fbbf24',
+  },
+  playerChipText: {
+    color: '#f8fafc',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  finishConfirmBtn: {
+    backgroundColor: '#10b981',
+    paddingVertical: 13,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  finishConfirmText: {
+    color: '#022c22',
+    fontWeight: '900',
+    fontSize: 13,
+  },
+  cancelBtn: {
+    backgroundColor: '#1e293b',
+    paddingVertical: 11,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    color: '#e2e8f0',
+    fontWeight: '800',
+    fontSize: 12,
+  },
 });
-

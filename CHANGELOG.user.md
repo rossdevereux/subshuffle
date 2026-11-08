@@ -5,6 +5,9 @@
 ## [1.12.1] - 2026-11-08
 
 ### Added
+- **Full Native Mobile App Feature Parity & Account Sign-In** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
+  - Sign in to your SubShuffle account on mobile via Email & Password or 1-tap Google Browser Sign-In to load and manage all of your real teams, squads, and fixtures.
+  - Added full mobile support for creating/editing teams, sharing teams with assistant coaches, adding/editing players and holiday dates, CSV bulk squad import, creating/editing fixtures, server-powered fair rotations, the Rolling Substitution Scheduler, live match scoring & goal scorers, joint Players of the Match awards, and the Team Dashboard.
 - **Downloadable Android APK on GitHub Releases**:
   - Every release and beta build now automatically compiles a standalone Android `.apk` (`subshuffle-v<version>.apk`) and attaches it directly to the GitHub Releases page and GitHub Actions artifacts for instant, zero-cost Android installation alongside Expo Over-The-Air (OTA) updates.
 

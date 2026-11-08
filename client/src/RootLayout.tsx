@@ -74,6 +74,40 @@ function DashboardShell() {
   const [editActiveFixtureOpen, setEditActiveFixtureOpen] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [mobileAuthDeepLink, setMobileAuthDeepLink] = useState<string | null>(null);
+  const isMobileAuthFlow =
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('mobileAuth') === '1';
+
+  useEffect(() => {
+    if (!isMobileAuthFlow || !currentUser) {
+      setMobileAuthDeepLink(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const idToken = await currentUser.getIdToken(true);
+        const refreshToken = (currentUser as any).stsTokenManager?.refreshToken || '';
+        const params = new URLSearchParams({
+          idToken,
+          refreshToken,
+          uid: currentUser.uid || '',
+          email: currentUser.email || '',
+          displayName: currentUser.displayName || '',
+        });
+        const deepLink = `subshuffle://auth?${params.toString()}`;
+        if (!cancelled) {
+          setMobileAuthDeepLink(deepLink);
+          window.location.href = deepLink;
+        }
+      } catch (err) {
+        console.warn('Failed to generate mobile auth handoff link:', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isMobileAuthFlow, currentUser]);
 
   const location = useLocation();
   const isPublicRoute = ['/', '/calculator', '/features', '/rules', '/guide'].includes(location.pathname);
@@ -155,9 +189,30 @@ function DashboardShell() {
     showToast('Match sheet period lineups cleared.', 'info');
   };
 
+  const mobileAuthBanner = isMobileAuthFlow ? (
+    <div className="bg-emerald-950/95 border-b border-emerald-500/40 px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-50">
+      <div className="text-xs sm:text-sm font-bold text-emerald-200">
+        {currentUser
+          ? `Signed in as ${currentUser.email || currentUser.displayName}. Tap to return to the SubShuffle Mobile App.`
+          : 'Sign in with Google or Email below to connect your SubShuffle Mobile App.'}
+      </div>
+      {mobileAuthDeepLink ? (
+        <a
+          href={mobileAuthDeepLink}
+          className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg"
+        >
+          📲 Open in SubShuffle Mobile App
+        </a>
+      ) : (
+        <AuthButton />
+      )}
+    </div>
+  ) : null;
+
   if (isPublicRoute) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+        {mobileAuthBanner}
         <Outlet />
         <GlobalModals
           confirmResetOpen={confirmResetOpen}
@@ -223,6 +278,7 @@ function DashboardShell() {
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--surface-base)] text-[var(--text-main)] flex flex-col selection:bg-[var(--kit-primary)] selection:text-white transition-colors duration-200">
+      {mobileAuthBanner}
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:rounded-xl focus:bg-sky-600 focus:text-white focus:font-bold focus:text-xs focus:shadow-lg"

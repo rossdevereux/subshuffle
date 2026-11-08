@@ -96,10 +96,47 @@ jobs:
           echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           echo "is_prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
 
+      - name: Check EXPO_TOKEN Secret
+        id: check_token
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Expo & EAS CLI
+        if: steps.check_token.outputs.has_token == 'true'
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish Over-The-Air (OTA) Update on Push
+        if: steps.check_token.outputs.has_token == 'true' && (github.event_name == 'push' || inputs.action_type == 'ota-update')
+        working-directory: ./mobile
+        env:
+          EXPO_PUBLIC_API_URL: ${{ steps.meta.outputs.api_url }}
+          EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+        run: |
+          if [ "${{ steps.meta.outputs.is_prerelease }}" == "false" ]; then
+            CHANNEL="production"
+          else
+            CHANNEL="beta"
+          fi
+          if grep -q '"projectId"' app.json; then
+            eas update --branch "$CHANNEL" --message "${{ github.event.head_commit.message || 'OTA update' }}" --non-interactive
+          else
+            echo "ℹ️ Skipping EAS OTA update until 'npx eas-cli init' adds extra.eas.projectId to mobile/app.json."
+          fi
+
       - name: Prebuild Native Android Project & Compile Release APK
         working-directory: ./mobile
         env:
           EXPO_PUBLIC_API_URL: ${{ steps.meta.outputs.api_url }}
+          EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
         run: |
           npx expo prebuild --platform android --no-install
           cd android
@@ -138,39 +175,6 @@ jobs:
             gh release create "$TAG" "$APK" \
               --title "$TAG" \
               --notes "SubShuffle Release $TAG with Android APK (\`$APK\`)."
-          fi
-
-      - name: Check EXPO_TOKEN Secret
-        id: check_token
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "has_token=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_token=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Expo & EAS CLI
-        if: steps.check_token.outputs.has_token == 'true'
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Publish Over-The-Air (OTA) Update on Push
-        if: steps.check_token.outputs.has_token == 'true' && (github.event_name == 'push' || inputs.action_type == 'ota-update')
-        working-directory: ./mobile
-        run: |
-          if [ "${{ steps.meta.outputs.is_prerelease }}" == "false" ]; then
-            CHANNEL="production"
-          else
-            CHANNEL="beta"
-          fi
-          if grep -q '"projectId"' app.json; then
-            eas update --branch "$CHANNEL" --message "${{ github.event.head_commit.message || 'OTA update' }}" --non-interactive
-          else
-            echo "ℹ️ Skipping EAS OTA update until 'npx eas-cli init' adds extra.eas.projectId to mobile/app.json."
           fi
 
       - name: Trigger EAS Cloud Build (iOS IPA / Android AAB)
