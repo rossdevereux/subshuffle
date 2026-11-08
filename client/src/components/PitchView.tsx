@@ -259,9 +259,10 @@ export const PitchView: React.FC<PitchViewProps> = ({ onOpenSquadSelector, onAut
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap shrink-0">
           {/* Dynamic Formation Dropdown based on pitch player count */}
           <select
+            aria-label={`Select formation for ${settings.pitchPlayerCount}-a-side`}
             value={settings.defaultFormation}
             onChange={(e) => changeFormation(e.target.value)}
-            className="min-h-[40px] sm:min-h-[36px] h-9 px-3 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-mono font-semibold focus:outline-none focus:border-sky-500 cursor-pointer shrink-0 max-w-[140px] truncate shadow-sm"
+            className="min-h-[40px] sm:min-h-[36px] h-9 px-3 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-mono font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-sky-500 cursor-pointer shrink-0 max-w-[140px] truncate shadow-sm"
             title={`Formations for ${settings.pitchPlayerCount}-a-side`}
           >
             {availableFormations.map((f) => (
@@ -371,6 +372,9 @@ export const PitchView: React.FC<PitchViewProps> = ({ onOpenSquadSelector, onAut
           return (
             <div
               key={`${entry.position}-${index}`}
+              role="button"
+              tabIndex={0}
+              aria-label={`${playerName}, position ${entry.position}`}
               style={{
                 left: `${slotDef.x}%`,
                 top: `${slotDef.y}%`,
@@ -381,7 +385,13 @@ export const PitchView: React.FC<PitchViewProps> = ({ onOpenSquadSelector, onAut
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, entry.playerId, entry.position)}
               onClick={() => onNodeClick(entry.playerId, entry.position)}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 group cursor-pointer transition-all duration-200 select-none ${
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onNodeClick(entry.playerId, entry.position);
+                }
+              }}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 group cursor-pointer transition-transform duration-200 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 rounded-2xl ${
                 isSelected
                   ? 'scale-110 z-30'
                   : isInspected
@@ -394,7 +404,7 @@ export const PitchView: React.FC<PitchViewProps> = ({ onOpenSquadSelector, onAut
               {/* Player Node Card with Touch Target */}
               <div
                 title={`${playerName} (${entry.position}) • Click to inspect & lock/unlock position`}
-                className={`relative flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-2xl backdrop-blur-md border shadow-xl transition-all min-h-[52px] sm:min-h-[58px] min-w-[76px] sm:min-w-[92px] max-w-[88px] sm:max-w-[108px] ${
+                className={`relative flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-2xl backdrop-blur-md border shadow-xl transition-colors min-h-[52px] sm:min-h-[58px] min-w-[76px] sm:min-w-[92px] max-w-[88px] sm:max-w-[108px] ${
                   isSelected
                     ? 'ring-4 ring-sky-400 border-white bg-slate-900 shadow-sky-500/50'
                     : isInspected
@@ -476,7 +486,7 @@ export const PitchView: React.FC<PitchViewProps> = ({ onOpenSquadSelector, onAut
                 </span>
 
                 {/* Total Minutes & Percentage */}
-                <div className="mt-1 flex items-center gap-1 text-[9px] text-slate-300 font-mono">
+                <div className="mt-1 flex items-center gap-1 text-[9px] text-slate-300 font-mono tabular-nums">
                   <span>{pStats ? `${pStats.minutesPlayed}m` : '0m'}</span>
                   <span>•</span>
                   <span
@@ -564,8 +574,8 @@ export const PitchView: React.FC<PitchViewProps> = ({ onOpenSquadSelector, onAut
 
               {/* Stats & Close X button */}
               <div className="flex items-center gap-2 shrink-0">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 border border-slate-700/80 text-xs font-mono text-slate-200 shadow-inner">
-                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 border border-slate-700/80 text-xs font-mono tabular-nums text-slate-200 shadow-inner">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
                   <span className="font-semibold">{minutes}m</span>
                   <span className="text-slate-500">/</span>
                   <span
@@ -580,10 +590,11 @@ export const PitchView: React.FC<PitchViewProps> = ({ onOpenSquadSelector, onAut
                 <button
                   type="button"
                   onClick={() => setInspectedPlayer(null)}
-                  className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-400 hover:text-white transition flex items-center justify-center cursor-pointer border border-slate-700"
+                  aria-label="Close player inspection"
+                  className="min-w-[44px] min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-400 hover:text-white transition flex items-center justify-center cursor-pointer border border-slate-700 focus-visible:ring-2 focus-visible:ring-sky-500"
                   title="Close inspection"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
             </div>

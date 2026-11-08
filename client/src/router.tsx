@@ -9,8 +9,8 @@ import { LandingPage } from './pages/LandingPage';
 
 const PageLoader: React.FC = () => (
   <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
-    <div className="w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
-    <span className="text-xs text-slate-400 font-medium">Loading view...</span>
+    <div className="w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin motion-reduce:animate-none" />
+    <span className="text-xs text-slate-400 font-medium">Loading view…</span>
   </div>
 );
 

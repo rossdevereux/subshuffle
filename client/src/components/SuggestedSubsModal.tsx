@@ -490,13 +490,15 @@ export const SuggestedSubsModal: React.FC<SuggestedSubsModalProps> = ({
             {showCustomForm && (
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 grid grid-cols-1 sm:grid-cols-5 gap-2 items-end">
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                  <label htmlFor="custom-sub-period" className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
                     Period
                   </label>
                   <select
+                    id="custom-sub-period"
+                    name="customPeriod"
                     value={customPeriod}
                     onChange={(e) => setCustomPeriod(Number(e.target.value))}
-                    className="w-full min-h-[36px] px-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs"
+                    className="w-full min-h-[36px] px-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   >
                     {Array.from({ length: periodCount }, (_, idx) => idx + 1).map((p) => (
                       <option key={p} value={p}>
@@ -506,28 +508,32 @@ export const SuggestedSubsModal: React.FC<SuggestedSubsModalProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                  <label htmlFor="custom-sub-minute" className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
                     Min in Period
                   </label>
                   <input
+                    id="custom-sub-minute"
+                    name="customMinute"
                     type="number"
                     min={1}
                     max={periodDuration - 1}
                     value={customMinute}
                     onChange={(e) => setCustomMinute(Number(e.target.value))}
-                    className="w-full min-h-[36px] px-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs"
+                    className="w-full min-h-[36px] px-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-rose-300 uppercase mb-1">
+                  <label htmlFor="custom-sub-off" className="block text-[10px] font-bold text-rose-300 uppercase mb-1">
                     Player OFF
                   </label>
                   <select
+                    id="custom-sub-off"
+                    name="customOffId"
                     value={customOffId}
                     onChange={(e) => setCustomOffId(e.target.value)}
-                    className="w-full min-h-[36px] px-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs"
+                    className="w-full min-h-[36px] px-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   >
-                    <option value="">Select OFF...</option>
+                    <option value="">Select OFF…</option>
                     {activeSelectedPlayers.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
@@ -536,15 +542,17 @@ export const SuggestedSubsModal: React.FC<SuggestedSubsModalProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-emerald-300 uppercase mb-1">
+                  <label htmlFor="custom-sub-on" className="block text-[10px] font-bold text-emerald-300 uppercase mb-1">
                     Player ON
                   </label>
                   <select
+                    id="custom-sub-on"
+                    name="customOnId"
                     value={customOnId}
                     onChange={(e) => setCustomOnId(e.target.value)}
-                    className="w-full min-h-[36px] px-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs"
+                    className="w-full min-h-[36px] px-2 rounded-lg bg-slate-950 border border-slate-700 text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   >
-                    <option value="">Select ON...</option>
+                    <option value="">Select ON…</option>
                     {activeSelectedPlayers
                       .filter((p) => p.id !== customOffId)
                       .map((p) => (
@@ -624,7 +632,7 @@ export const SuggestedSubsModal: React.FC<SuggestedSubsModalProps> = ({
 
           {loading ? (
             <div className="p-12 text-center text-slate-400">
-              Calculating position-matched substitutions...
+              Calculating position-matched substitutions…
             </div>
           ) : !currentPlan || currentPlan.windows.length === 0 ? (
             <div className="p-12 text-center rounded-2xl bg-slate-950/40 border border-slate-800 text-slate-400 space-y-2">
@@ -741,7 +749,7 @@ export const SuggestedSubsModal: React.FC<SuggestedSubsModalProps> = ({
                     {appliedSuccess
                       ? 'Applied to Live Match!'
                       : applying
-                      ? 'Applying...'
+                      ? 'Applying…'
                       : isCurrentPlanSynced
                       ? 'Plan Synced to Schedule'
                       : 'Apply Plan to Match Schedule'}

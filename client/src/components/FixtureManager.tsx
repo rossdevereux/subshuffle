@@ -221,12 +221,16 @@ export const FixtureManager: React.FC = () => {
 
           {/* Season Filter Dropdown */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-[11px] text-slate-400">{t('stats.seasonView', 'Season')}:</span>
+            <Filter className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
+            <label htmlFor="fixtures-season-filter" className="text-[11px] text-slate-400">
+              {t('stats.seasonView', 'Season')}:
+            </label>
             <select
+              id="fixtures-season-filter"
+              name="selectedSeasonFilter"
               value={selectedSeasonFilter}
               onChange={(e) => setSelectedSeasonFilter(e.target.value)}
-              className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer"
+              className="bg-slate-950 text-white font-semibold text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded cursor-pointer"
             >
               <option value="ALL" className="bg-slate-900 text-white">{t('fixtures.allFixtures', 'All Seasons')}</option>
               {allDistinctSeasons.map((s) => (

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-11-08
+
+### Changed
+- **UI, Keyboard Accessibility & Touchline Ergonomics Improvements**:
+  - Added full keyboard navigation (`Tab`, `Enter`, `Space`) for pitch player nodes, bench cards, and rested squad cards, plus a **Skip to main content** link and accessible labels for screen readers.
+  - Added tabular fixed-width numerals (`tabular-nums`) to the **Live Match** stopwatch, rotation countdown, and scoreboard so digits never jitter while counting, and respected system **Reduced Motion** preferences across loading spinners and live indicators.
+
 ## [1.8.1] - 2026-10-31
 
 ### Fixed
