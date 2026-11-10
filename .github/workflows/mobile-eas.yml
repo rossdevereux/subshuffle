@@ -217,15 +217,17 @@ jobs:
               --notes "SubShuffle Release $TAG with Android APK (\`$APK\`) and Play Store AAB Bundle (\`$AAB\`)."
           fi
 
-      - name: Auto-Publish to Google Play Internal Testing Track
+      - name: Auto-Publish to Google Play Console Track
         if: env.PLAY_KEY != ''
-        working-directory: ./mobile
+        uses: r0adkll/upload-google-play@v1
         env:
           PLAY_KEY: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}
-          PACKAGE_NAME: com.subshuffle.app
-        run: |
-          echo "🤖 Google Play Service Account key found. Auto-uploading AAB to Google Play Store Internal Track..."
-          npx rnv deploy -p android || echo "Run manual upload or configure play-publisher"
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}
+          packageName: com.subshuffle.app
+          releaseFiles: ./mobile/${{ steps.meta.outputs.aab_name }}
+          track: ${{ steps.meta.outputs.is_prerelease == 'true' && 'internal' || 'production' }}
+          status: completed
 
       - name: Trigger EAS Cloud Build (iOS IPA / Android AAB)
         if: steps.check_token.outputs.has_token == 'true' && github.event_name == 'workflow_dispatch' && (inputs.action_type == 'eas-cloud-build' || inputs.action_type == 'eas-build-and-submit')
