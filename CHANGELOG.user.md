@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.12.3] - 2026-11-10
+
 ### Added
 - **Custom Substitutions & Smoother Pitch Selection** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
   - Added a dedicated **➕ Custom Sub** button on the Pitch view so you can plan custom minute-by-minute substitutions whenever you don't want to use the auto-interval scheduler.

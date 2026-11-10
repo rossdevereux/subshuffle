@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.3] - 2026-11-10
+
 ### Added
 - **Mobile Custom Substitution Builder & Pitch View Stability** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
   - Added dedicated **➕ Custom Sub** action button and builder dialog on the Pitch tab, allowing coaches to configure and schedule exact custom substitutions for any minute without relying solely on auto-generated intervals.
