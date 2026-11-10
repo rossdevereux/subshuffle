@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Dedicated Public Terms & Conditions Page (`/terms`)**:
+  - Added standalone [`TermsPage.tsx`](client/src/pages/TermsPage.tsx) accessible at `https://subshuffle.com/terms` (and `https://subshuffle-beta.web.app/terms`).
+  - Outlines coach responsibility and physical safety disclaimers, account and club sharing rules, subscription billing and VAT receipts, intellectual property, and English law jurisdiction.
+  - Linked directly in [`RootLayout.tsx`](client/src/RootLayout.tsx) footer alongside Privacy Policy and registered `/terms` route in [`router.tsx`](client/src/router.tsx).
 - **Google Play Store App Bundle (`.aab`) & Automated Release Artifacts**:
   - Updated [`.github/workflows/mobile-eas.yml`](.github/workflows/mobile-eas.yml) to compile signed Android App Bundles (`subshuffle-v<version>.aab`) alongside release `.apk` binaries and attach both to GitHub Releases.
   - Added auto-incrementing `versionCode` for Android builds in CI based on build run sequence.

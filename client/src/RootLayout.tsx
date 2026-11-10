@@ -110,7 +110,7 @@ function DashboardShell() {
   }, [isMobileAuthFlow, currentUser]);
 
   const location = useLocation();
-  const isPublicRoute = ['/', '/calculator', '/features', '/rules', '/guide', '/privacy'].includes(location.pathname);
+  const isPublicRoute = ['/', '/calculator', '/features', '/rules', '/guide', '/privacy', '/terms'].includes(location.pathname);
 
   useEffect(() => {
     const handleBeforePrint = () => {
@@ -665,6 +665,13 @@ function DashboardShell() {
             >
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>Privacy &amp; GDPR</span>
+            </Link>
+            <Link
+              to="/terms"
+              className="hover:text-slate-300 transition cursor-pointer flex items-center gap-1 font-semibold"
+              title="View SubShuffle terms and conditions"
+            >
+              <span>Terms &amp; Conditions</span>
             </Link>
           </div>
         </div>
