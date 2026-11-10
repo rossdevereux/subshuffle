@@ -198,6 +198,7 @@ interface MobileMatchdayContextType {
   }) => Promise<void>;
   enterDemoMode: () => void;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   refreshAllData: () => Promise<void>;
 
   // Teams & Settings
@@ -804,6 +805,17 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
     setPlayers(FALLBACK_PLAYERS);
     setFixtures([FALLBACK_FIXTURE]);
   }, []);
+
+  const deleteAccount = useCallback(async () => {
+    if (!currentUser) return;
+    const res = await authFetch('/api/account/me', { method: 'DELETE' });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to delete account');
+    }
+    await signOut();
+    flashSync('Your account and all squad data have been permanently deleted.');
+  }, [currentUser, authFetch, signOut, flashSync]);
 
   // ================= Team Actions =================
   const setActiveTeamId = useCallback(
@@ -1993,6 +2005,7 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
         completeDeepLinkSignIn,
         enterDemoMode,
         signOut,
+        deleteAccount,
         refreshAllData: () => refreshAllData(),
 
         teams,

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- **Account & Data Deletion (GDPR & Google Play Compliance)**:
+  - Added a dedicated, self-service **Delete Account & Personal Data** page at `https://subshuffle.com/delete-account` and in **Settings ⚙️** -> **Billing & Plan**.
+  - Coaches can now permanently delete their account, all teams, players, lineups, and match history directly from both the web app and mobile app (**Teams** -> **💬 Support & Account** -> **🗑️ Permanently Delete Account & All Data**).
+  - All personal data is wiped immediately from SubShuffle servers in full compliance with GDPR Right to Erasure and Google Play Store policies.
+
 ## [1.12.4] - 2026-11-10
 
 ### Added

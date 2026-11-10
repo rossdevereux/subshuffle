@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from '@tanstack/react-router';
 import { useMatchday } from '../context/MatchdayContext';
 import { TeamSettings, PaymentRecord } from '../types';
 import { getFormationsForTeamSize } from '../utils/formations';
-import { Sliders, X, Check, Plus, CreditCard, Sparkles, ExternalLink, ShieldCheck, Clock, Zap, Crown, FileText } from 'lucide-react';
+import { Sliders, X, Check, Plus, CreditCard, Sparkles, ExternalLink, ShieldCheck, Clock, Zap, Crown, FileText, Trash2 } from 'lucide-react';
 import { LanguageSelector } from './LanguageSelector';
 import { getAuthToken } from '../firebase';
 import { fetchBillingHistory } from '../utils/adminApi';
@@ -20,6 +21,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onOpenCustomFormation,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { settings, updateSettings, changeFormation, subscription, trialDaysRemaining, isSubscriptionActive, openPaywall } = useMatchday();
 
   const [activeModalTab, setActiveModalTab] = useState<'rules' | 'billing'>('rules');
@@ -512,6 +514,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                 </>
               )}
+            </div>
+
+            {/* Danger Zone: Account Deletion */}
+            <div className="p-4 rounded-2xl bg-rose-950/20 border border-rose-900/40 space-y-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-rose-300 font-bold text-xs flex items-center gap-1.5">
+                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Delete Account &amp; All Data</span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">
+                    Permanently erase your coach account, teams, players, and match records in compliance with GDPR.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    navigate({ to: '/delete-account' });
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-semibold transition cursor-pointer shrink-0"
+                >
+                  Delete Account...
+                </button>
+              </div>
             </div>
           </div>
         ) : (

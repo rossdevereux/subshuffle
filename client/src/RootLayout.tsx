@@ -110,7 +110,7 @@ function DashboardShell() {
   }, [isMobileAuthFlow, currentUser]);
 
   const location = useLocation();
-  const isPublicRoute = ['/', '/calculator', '/features', '/rules', '/guide', '/privacy', '/terms'].includes(location.pathname);
+  const isPublicRoute = ['/', '/calculator', '/features', '/rules', '/guide', '/privacy', '/terms', '/delete-account'].includes(location.pathname);
 
   useEffect(() => {
     const handleBeforePrint = () => {
@@ -672,6 +672,13 @@ function DashboardShell() {
               title="View SubShuffle terms and conditions"
             >
               <span>Terms &amp; Conditions</span>
+            </Link>
+            <Link
+              to="/delete-account"
+              className="hover:text-rose-400 transition cursor-pointer flex items-center gap-1 font-semibold"
+              title="Delete coach account and squad data (GDPR Right to Erasure)"
+            >
+              <span>Delete Account</span>
             </Link>
           </div>
         </div>

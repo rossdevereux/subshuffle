@@ -7,6 +7,7 @@ import {
   Pressable,
   Modal,
   TextInput,
+  Alert,
 } from 'react-native';
 import { useMobileMatchday } from '../../src/context/MobileMatchdayContext';
 import { MobileHeaderBar } from '../../src/components/MobileHeaderBar';
@@ -26,6 +27,7 @@ export default function TeamsAndSettingsScreen() {
     addSeason,
     submitSupportTicket,
     signOut,
+    deleteAccount,
     sunlightMode,
   } = useMobileMatchday();
 
@@ -46,6 +48,27 @@ export default function TeamsAndSettingsScreen() {
   const [ticketCat, setTicketCat] = useState<'bug' | 'feature' | 'question'>('bug');
   const [ticketSummary, setTicketSummary] = useState('');
   const [ticketDesc, setTicketDesc] = useState('');
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account & All Data?',
+      'This will permanently delete your coach profile, all teams, players, fixtures, and lineups. This action is irreversible.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Permanently Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount();
+            } catch (err: any) {
+              Alert.alert('Error', err?.message || 'Could not delete account. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const settings = activeTeam.settings;
 
@@ -328,6 +351,11 @@ export default function TeamsAndSettingsScreen() {
               : 'Exit Demo Mode & Sign In to Your Account'}
           </Text>
         </Pressable>
+        {currentUser ? (
+          <Pressable style={styles.deleteAccountBtn} onPress={handleDeleteAccount}>
+            <Text style={styles.deleteAccountText}>🗑️ Permanently Delete Account &amp; All Data</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {/* Create Team Modal */}
@@ -643,6 +671,20 @@ const styles = StyleSheet.create({
     color: '#fca5a5',
     fontWeight: '800',
     fontSize: 13,
+  },
+  deleteAccountBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  deleteAccountText: {
+    color: '#f87171',
+    fontWeight: '700',
+    fontSize: 12,
   },
   modalBackdrop: {
     flex: 1,

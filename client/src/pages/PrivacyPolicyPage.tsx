@@ -83,9 +83,13 @@ export function PrivacyPolicyPage() {
           <ul className="list-disc pl-5 space-y-1.5 mt-2">
             <li>You can edit or delete individual players, fixtures, or teams at any time directly in the app.</li>
             <li>
-              To permanently delete your coach account and all associated squad history, you can submit an in-app request via the
-              <strong> Help &amp; Feedback</strong> menu or email us directly at <a href="mailto:privacy@subshuffle.com" className="text-emerald-400 underline">privacy@subshuffle.com</a>.
-              Your data will be permanently purged within 30 days.
+              To permanently delete your coach account and all associated squad history, you can use our immediate{' '}
+              <Link to="/delete-account" className="text-rose-400 hover:text-rose-300 underline font-semibold">
+                Self-Service Account Deletion Page
+              </Link>
+              , delete your account in the mobile app under <strong>Account Settings</strong>, or email us directly at{' '}
+              <a href="mailto:privacy@subshuffle.com" className="text-emerald-400 underline">privacy@subshuffle.com</a>.
+              Your data will be permanently purged immediately upon confirmation.
             </li>
           </ul>
         </section>

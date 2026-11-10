@@ -13,7 +13,7 @@ import {
 import { calculateSeasonDashboardSummary } from '../services/dashboardService.js';
 import { getChangelogData } from '../services/changelogService.js';
 import { getFormationsForTeamSize, DEFAULT_FORMATIONS } from '../db/formations.js';
-import { optionalAuth, AuthenticatedRequest } from '../middleware/auth.js';
+import { optionalAuth, requireAuth, isSuperAdminUser, AuthenticatedRequest } from '../middleware/auth.js';
 import { requireActiveSubscription } from '../middleware/requireActiveSubscription.js';
 import {
   Player,
@@ -1517,5 +1517,48 @@ router.post('/user/onboarding', async (req: AuthenticatedRequest, res: Response)
     res.status(500).json({ error: 'Failed to update onboarding state', details: err.message });
   }
 });
+
+// ================= Account & Personal Data Deletion (GDPR & App Store Compliance) =================
+
+// DELETE /api/account/me (also aliased at /api/users/me)
+const handleAccountDeletion = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const uid = req.user?.uid;
+    const email = req.user?.email;
+    if (!uid) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Safety restriction: prevent accidental self-deletion of active platform super-admin in production
+    if (isSuperAdminUser(req.user) && process.env.NODE_ENV === 'production') {
+      return res.status(403).json({
+        error: 'Safety restriction: Cannot delete the active Platform Super-Administrator account.',
+      });
+    }
+
+    // 1. Permanently delete all teams, squad players, match fixtures, lineups, and user records
+    const details = await storage.deleteUserAccount(uid, email);
+
+    // 2. Delete user identity from Firebase Authentication
+    try {
+      await getAuth().deleteUser(uid);
+    } catch (authErr: any) {
+      // In dev or test environments with mock tokens or mock users, ignore if user not found
+      console.warn(`Firebase Auth user deletion notice for ${uid}:`, authErr?.message || authErr);
+    }
+
+    res.json({
+      success: true,
+      message: 'Account and all associated personal data have been permanently deleted.',
+      details,
+    });
+  } catch (err: any) {
+    console.error('Account deletion error:', err);
+    res.status(500).json({ error: 'Failed to delete account', details: err.message });
+  }
+};
+
+router.delete('/account/me', requireAuth, handleAccountDeletion);
+router.delete('/users/me', requireAuth, handleAccountDeletion);
 
 export default router;

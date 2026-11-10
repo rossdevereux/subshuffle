@@ -28,6 +28,7 @@ const LazyRulesPage = React.lazy(() => import('./pages/RulesPage').then((m) => (
 const LazyGuidePage = React.lazy(() => import('./pages/GuidePage').then((m) => ({ default: m.GuidePage })));
 const LazyPrivacyPage = React.lazy(() => import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })));
 const LazyTermsPage = React.lazy(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })));
+const LazyDeleteAccountPage = React.lazy(() => import('./pages/DeleteAccountPage').then((m) => ({ default: m.DeleteAccountPage })));
 
 const withSuspense = (Component: React.ComponentType) => () => (
   <Suspense fallback={<PageLoader />}>
@@ -129,6 +130,12 @@ const termsRoute = createRoute({
   component: withSuspense(LazyTermsPage),
 });
 
+const deleteAccountRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/delete-account',
+  component: withSuspense(LazyDeleteAccountPage),
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   calculatorRoute,
@@ -145,6 +152,7 @@ const routeTree = rootRoute.addChildren([
   teamsRoute,
   privacyRoute,
   termsRoute,
+  deleteAccountRoute,
 ]);
 
 export const router = createRouter({ routeTree });

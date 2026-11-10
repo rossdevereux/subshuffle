@@ -1513,6 +1513,134 @@ export class StorageManager {
     return this.memoryStore.adminUsers.length < prevLen;
   }
 
+  /**
+   * Permanently deletes a user account and cascades erasure across all owned resources
+   * (teams, players, fixtures, lineups, attendance, user records, and sharing associations)
+   * in accordance with GDPR Right to Erasure / Google Play Account Deletion requirements.
+   */
+  async deleteUserAccount(
+    uid: string,
+    userEmail?: string
+  ): Promise<{ deletedTeams: number; deletedPlayers: number; deletedFixtures: number }> {
+    await this.ensureInitialized();
+
+    const normalizedEmail = userEmail ? userEmail.trim().toLowerCase() : undefined;
+
+    // 1. Identify all teams owned by the user
+    const ownedTeams = this.memoryStore.teams.filter((t) => {
+      if (t.ownerId && t.ownerId === uid) return true;
+      if (normalizedEmail && t.ownerEmail && t.ownerEmail.trim().toLowerCase() === normalizedEmail) return true;
+      return false;
+    });
+    const ownedTeamIds = new Set(ownedTeams.map((t) => t.id));
+
+    // 2. Remove owned teams from memoryStore
+    this.memoryStore.teams = this.memoryStore.teams.filter((t) => !ownedTeamIds.has(t.id));
+
+    // 3. Remove players belonging to owned teams
+    const initialPlayersCount = this.memoryStore.players.length;
+    this.memoryStore.players = this.memoryStore.players.filter((p) => !ownedTeamIds.has(p.teamId));
+    const deletedPlayers = initialPlayersCount - this.memoryStore.players.length;
+
+    // 4. Remove fixtures belonging to owned teams
+    const initialFixturesCount = this.memoryStore.fixtures.length;
+    this.memoryStore.fixtures = this.memoryStore.fixtures.filter((f) => !ownedTeamIds.has(f.teamId));
+    const deletedFixtures = initialFixturesCount - this.memoryStore.fixtures.length;
+
+    // 5. Invalidate season summary caches for owned teams
+    for (const teamId of ownedTeamIds) {
+      this.invalidateSeasonSummary(teamId);
+    }
+
+    // 6. Clean up shared teams where user was invited or added as coach/viewer
+    for (const team of this.memoryStore.teams) {
+      let modified = false;
+      if (team.sharedWith && Array.isArray(team.sharedWith)) {
+        const prevLen = team.sharedWith.length;
+        team.sharedWith = team.sharedWith.filter((idOrEmail) => {
+          if (idOrEmail === uid) return false;
+          if (normalizedEmail && typeof idOrEmail === 'string' && idOrEmail.trim().toLowerCase() === normalizedEmail) return false;
+          return true;
+        });
+        if (team.sharedWith.length !== prevLen) modified = true;
+      }
+      if (team.sharedMembers && Array.isArray(team.sharedMembers)) {
+        const prevLen = team.sharedMembers.length;
+        team.sharedMembers = team.sharedMembers.filter((m) => {
+          if (m.userId === uid) return false;
+          if (normalizedEmail && m.email && m.email.trim().toLowerCase() === normalizedEmail) return false;
+          return true;
+        });
+        if (team.sharedMembers.length !== prevLen) modified = true;
+      }
+      if (team.pendingInvites && Array.isArray(team.pendingInvites)) {
+        const prevLen = team.pendingInvites.length;
+        team.pendingInvites = team.pendingInvites.filter((inv) => {
+          if (typeof inv === 'string' && normalizedEmail && inv.trim().toLowerCase() === normalizedEmail) return false;
+          return true;
+        });
+        if (team.pendingInvites.length !== prevLen) modified = true;
+      }
+      if (modified && this.isFirestoreAvailable && this.firestoreInstance) {
+        try {
+          await this.firestoreInstance.collection('teams').doc(team.id).set(cleanUndefined(team));
+        } catch (err) {
+          console.error('Error updating team sharing during account deletion:', err);
+        }
+      }
+    }
+
+    // 7. Delete adminUser record from memoryStore
+    if (this.memoryStore.adminUsers) {
+      this.memoryStore.adminUsers = this.memoryStore.adminUsers.filter((u) => u.uid !== uid);
+    }
+
+    // 8. Delete user payments from memoryStore
+    if (this.memoryStore.userPayments && this.memoryStore.userPayments[uid]) {
+      delete this.memoryStore.userPayments[uid];
+    }
+
+    this.saveToFile();
+
+    // 9. Cascade deletion in Firestore if available
+    if (this.isFirestoreAvailable && this.firestoreInstance) {
+      try {
+        // Delete owned teams
+        for (const teamId of ownedTeamIds) {
+          await this.firestoreInstance.collection('teams').doc(teamId).delete().catch(() => {});
+        }
+
+        // Delete players belonging to owned teams
+        for (const teamId of ownedTeamIds) {
+          const pSnap = await this.firestoreInstance.collection('players').where('teamId', '==', teamId).get().catch(() => ({ docs: [] }));
+          for (const doc of pSnap.docs) {
+            await doc.ref.delete().catch(() => {});
+          }
+        }
+
+        // Delete fixtures belonging to owned teams
+        for (const teamId of ownedTeamIds) {
+          const fSnap = await this.firestoreInstance.collection('fixtures').where('teamId', '==', teamId).get().catch(() => ({ docs: [] }));
+          for (const doc of fSnap.docs) {
+            await doc.ref.delete().catch(() => {});
+          }
+        }
+
+        // Delete adminUsers and users documents
+        await this.firestoreInstance.collection('adminUsers').doc(uid).delete().catch(() => {});
+        await this.firestoreInstance.collection('users').doc(uid).delete().catch(() => {});
+      } catch (err) {
+        console.error('Firestore cascade deletion error:', err);
+      }
+    }
+
+    return {
+      deletedTeams: ownedTeams.length,
+      deletedPlayers,
+      deletedFixtures,
+    };
+  }
+
   // ================= User Subscription & Monetisation =================
   async getUserSubscription(uid: string): Promise<UserSubscription> {
     await this.ensureInitialized();

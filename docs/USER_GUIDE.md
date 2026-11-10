@@ -370,6 +370,12 @@ Need help on matchday, want to suggest a grassroots feature, or spotted a bug on
 **Q: How does SubShuffle protect club and player privacy?**  
 *A: SubShuffle uses role-based access tokens to ensure only authorized coaches have access to team squads. Matchday telemetry (such as anonymous feature adoption metrics like auto-rotations run and live stopwatch activations) uses Google Analytics (GA4) with zero personally identifiable child player information transmitted.*
 
+**Q: How can I permanently delete my coach account and all squad data?**  
+*A: SubShuffle provides complete self-service account deletion and GDPR Right to Erasure:
+- **On the Web:** Visit the dedicated [Delete Account Page](/delete-account) or open **Settings ⚙️** -> **Billing & Plan** and click **Delete Account...** in the Danger Zone.
+- **In the Mobile App:** Open the **Teams** tab, scroll to **💬 Support & Account**, and tap **🗑️ Permanently Delete Account & All Data**.
+- **Via Email:** If you cannot sign in, send an erasure request to **privacy@subshuffle.com** from the email registered to your coach account. Deletion cascades immediately across all your teams, players, lineups, and match history.*
+
 **Q: How does SubShuffle ensure fast pitchside responsiveness on mobile devices?**  
 *A: SubShuffle monitors network latency and client operations in real-time using Firebase Performance Monitoring. Core workflows like rotation calculations and live touchline substitutions are benchmarked continuously to ensure smooth performance even on low-end mobile devices and flaky touchline connections.*
 

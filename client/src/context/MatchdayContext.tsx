@@ -143,6 +143,7 @@ interface MatchdayContextType {
   refreshData: () => Promise<void>;
   enterDemoMode: () => void;
   signOutUser: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   // Subscription & Paywall
   subscription: UserSubscription | null;
   trialDaysRemaining: number;
@@ -518,6 +519,27 @@ export const MatchdayProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       search: () => ({}),
     });
   }, [navigate, currentUser]);
+
+  // Permanently delete user account and cascade erasure across all teams, players, fixtures, and auth
+  const deleteAccount = useCallback(async () => {
+    const headers = await getAuthHeaders();
+    const res = await fetch('/api/account/me', {
+      method: 'DELETE',
+      headers,
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || errData.details || 'Failed to delete account');
+    }
+
+    try {
+      if (auth.currentUser) {
+        await auth.currentUser.delete().catch(() => {});
+      }
+    } catch (_) {}
+
+    await signOutUser();
+  }, [getAuthHeaders, signOutUser]);
 
   // Fetch teams list with offline cache and built-in demo fallback
   const refreshTeams = useCallback(async () => {
@@ -2514,6 +2536,7 @@ export const MatchdayProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         refreshData,
         enterDemoMode,
         signOutUser,
+        deleteAccount,
         subscription,
         trialDaysRemaining,
         isSubscriptionActive,

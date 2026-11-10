@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Self-Service Account & Data Erasure Page (`/delete-account`)**:
+  - Implemented public and in-app self-service account deletion page [`DeleteAccountPage.tsx`](client/src/pages/DeleteAccountPage.tsx) compliant with GDPR Right to Erasure and Google Play Account Deletion Policy.
+  - Requires explicit acknowledgement and double-confirmation ("DELETE" input entry) before triggering erasure to protect against accidental loss.
+  - Added public route `/delete-account` in [`router.tsx`](client/src/router.tsx) and linked in [`RootLayout.tsx`](client/src/RootLayout.tsx) footer and [`PrivacyPolicyPage.tsx`](client/src/pages/PrivacyPolicyPage.tsx) Section 5.
+  - Added Danger Zone in [`SettingsModal.tsx`](client/src/components/SettingsModal.tsx) under Billing & Plan tab directing coaches to account deletion.
+- **Backend Cascade Account Deletion API (`DELETE /api/account/me`)**:
+  - Created authenticated endpoint in [`routes/api.ts`](server/src/routes/api.ts) (with alias `DELETE /api/users/me`) executing complete cascade data purge:
+    - Identifies all teams owned by the requesting coach and purges them.
+    - Cascades erasure across all players, squad profiles, positions, and attendance records.
+    - Cascades erasure across all match fixtures, period lineups, rolling sub plans, scores, and post-match records.
+    - Removes user from `sharedWith`, `sharedMembers`, and `pendingInvites` across other teams.
+    - Purges user administration and onboarding records from database.
+    - Permanently deletes the user identity from Firebase Authentication via `getAuth().deleteUser(uid)`.
+  - Added comprehensive test suite [`accountDeletion.test.ts`](server/src/tests/accountDeletion.test.ts) covering cascade deletion, data isolation, and unauthorized access rejections.
+- **Mobile In-App Account Deletion Workflow**:
+  - Added `deleteAccount()` method to [`MobileMatchdayContext.tsx`](mobile/src/context/MobileMatchdayContext.tsx) calling backend deletion endpoint and wiping local memory and persistent storage.
+  - Added **🗑️ Permanently Delete Account & All Data** destructive action in [`teams.tsx`](mobile/app/(tabs)/teams.tsx) with native double-confirmation alert dialog.
+
 ## [1.12.4] - 2026-11-10
 
 ### Added
