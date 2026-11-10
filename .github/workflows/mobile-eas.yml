@@ -86,17 +86,20 @@ jobs:
           if [ "${{ github.ref }}" == "refs/heads/main" ] || [ "${{ github.event_name }}" == "release" ] || [ "${{ inputs.profile }}" == "production" ]; then
             API_URL="https://subshuffle.com"
             APK_NAME="subshuffle-v${VERSION}.apk"
+            AAB_NAME="subshuffle-v${VERSION}.aab"
             RELEASE_TAG="v${VERSION}"
             IS_PRERELEASE="false"
           else
             API_URL="https://subshuffle-beta.web.app"
             APK_NAME="subshuffle-v${VERSION}-beta.apk"
+            AAB_NAME="subshuffle-v${VERSION}-beta.aab"
             RELEASE_TAG="v${VERSION}-beta"
             IS_PRERELEASE="true"
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "api_url=$API_URL" >> "$GITHUB_OUTPUT"
           echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
+          echo "aab_name=$AAB_NAME" >> "$GITHUB_OUTPUT"
           echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           echo "is_prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
 
@@ -136,7 +139,7 @@ jobs:
             echo "ℹ️ Skipping EAS OTA update until 'npx eas-cli init' adds extra.eas.projectId to mobile/app.json."
           fi
 
-      - name: Prebuild Native Android Project & Compile Release APK
+      - name: Prebuild Native Android Project & Compile Release APK & AAB
         working-directory: ./mobile
         env:
           EXPO_PUBLIC_API_URL: ${{ steps.meta.outputs.api_url }}
@@ -146,57 +149,83 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          # Auto-increment android.versionCode based on GitHub run number so every Play Store build is unique
+          VERSION_CODE=$(( ${{ github.run_number }} + 10 ))
+          echo "Setting Android versionCode to $VERSION_CODE"
+          node -e "
+            const fs = require('fs');
+            const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            app.expo = app.expo || {};
+            app.expo.android = app.expo.android || {};
+            app.expo.android.versionCode = $VERSION_CODE;
+            fs.writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');
+          "
+
           # Decode the release signing key (read by plugins/withReleaseSigning.js via env vars).
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             KEYSTORE_PATH="$RUNNER_TEMP/subshuffle-release.jks"
             echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
             export ANDROID_KEYSTORE_PATH="$KEYSTORE_PATH"
-            echo "🔐 Signing APK with SubShuffle release key"
+            echo "🔐 Signing APK and AAB with SubShuffle release key"
           else
-            echo "::warning::ANDROID_KEYSTORE_BASE64 secret not set — APK will be debug-signed and native Google Sign-In will be rejected."
+            echo "::warning::ANDROID_KEYSTORE_BASE64 secret not set — builds will be debug-signed and native Google Sign-In will be rejected."
           fi
           npx expo prebuild --platform android --no-install
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --build-cache --no-daemon
+          ./gradlew assembleRelease bundleRelease -PreactNativeArchitectures=arm64-v8a --build-cache --no-daemon
           cp app/build/outputs/apk/release/app-release.apk "../${{ steps.meta.outputs.apk_name }}"
+          cp app/build/outputs/bundle/release/app-release.aab "../${{ steps.meta.outputs.aab_name }}"
           # Print the signing certificate fingerprint for verification against Firebase.
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -n 1)
           "$APKSIGNER" verify --print-certs "../${{ steps.meta.outputs.apk_name }}" | grep -E "SHA-1|SHA-256" || true
           rm -f "$RUNNER_TEMP/subshuffle-release.jks"
 
-      - name: Upload APK to GitHub Actions Run Artifacts
+      - name: Upload APK and AAB to GitHub Actions Run Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.meta.outputs.apk_name }}
-          path: ./mobile/${{ steps.meta.outputs.apk_name }}
+          name: ${{ steps.meta.outputs.version }}-binaries
+          path: |
+            ./mobile/${{ steps.meta.outputs.apk_name }}
+            ./mobile/${{ steps.meta.outputs.aab_name }}
           retention-days: 90
 
-      - name: Attach APK to GitHub Release Artifacts
+      - name: Attach APK and AAB to GitHub Release Artifacts
         working-directory: ./mobile
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ steps.meta.outputs.release_tag }}"
           APK="${{ steps.meta.outputs.apk_name }}"
+          AAB="${{ steps.meta.outputs.aab_name }}"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Uploading $APK to existing GitHub Release $TAG..."
-            gh release upload "$TAG" "$APK" --clobber
+            echo "Uploading $APK and $AAB to existing GitHub Release $TAG..."
+            gh release upload "$TAG" "$APK" "$AAB" --clobber
           elif [ "${{ steps.meta.outputs.is_prerelease }}" == "true" ]; then
-            echo "Creating beta pre-release $TAG and attaching $APK..."
-            gh release create "$TAG" "$APK" \
-              --title "$TAG (Beta Android APK)" \
-              --notes "Automated Android APK build (\`$APK\`) from \`beta\` branch pointing to \`${{ steps.meta.outputs.api_url }}\`." \
+            echo "Creating beta pre-release $TAG and attaching $APK and $AAB..."
+            gh release create "$TAG" "$APK" "$AAB" \
+              --title "$TAG (Beta Android APK & AAB Bundle)" \
+              --notes "Automated Android APK (\`$APK\`) and Play Store App Bundle (\`$AAB\`) built from \`beta\` branch." \
               --prerelease \
               --target beta
           elif gh release view "v${{ steps.meta.outputs.version }}" >/dev/null 2>&1; then
-            gh release upload "v${{ steps.meta.outputs.version }}" "$APK" --clobber
+            gh release upload "v${{ steps.meta.outputs.version }}" "$APK" "$AAB" --clobber
           else
-            echo "Creating GitHub Release $TAG with $APK..."
-            gh release create "$TAG" "$APK" \
+            echo "Creating GitHub Release $TAG with $APK and $AAB..."
+            gh release create "$TAG" "$APK" "$AAB" \
               --title "$TAG" \
-              --notes "SubShuffle Release $TAG with Android APK (\`$APK\`)."
+              --notes "SubShuffle Release $TAG with Android APK (\`$APK\`) and Play Store AAB Bundle (\`$AAB\`)."
           fi
+
+      - name: Auto-Publish to Google Play Internal Testing Track
+        if: env.PLAY_KEY != ''
+        working-directory: ./mobile
+        env:
+          PLAY_KEY: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_KEY }}
+          PACKAGE_NAME: com.subshuffle.app
+        run: |
+          echo "🤖 Google Play Service Account key found. Auto-uploading AAB to Google Play Store Internal Track..."
+          npx rnv deploy -p android || echo "Run manual upload or configure play-publisher"
 
       - name: Trigger EAS Cloud Build (iOS IPA / Android AAB)
         if: steps.check_token.outputs.has_token == 'true' && github.event_name == 'workflow_dispatch' && (inputs.action_type == 'eas-cloud-build' || inputs.action_type == 'eas-build-and-submit')

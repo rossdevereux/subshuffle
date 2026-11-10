@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+- **Google Play Store App Bundle & Privacy Policy**:
+  - SubShuffle releases now automatically compile `.aab` Android App Bundles ready for Google Play Internal & Closed Beta tracks.
+  - Added a dedicated, public **Privacy & GDPR Policy** page at `https://subshuffle.com/privacy` to meet Google Play Console and child safety requirements.
+
 ## [1.12.3] - 2026-11-10
 
 ### Added

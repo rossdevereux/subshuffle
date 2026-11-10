@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { Outlet, useNavigate, useLocation } from '@tanstack/react-router';
+import { Outlet, useNavigate, useLocation, Link } from '@tanstack/react-router';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { MatchdayProvider, useMatchday } from './context/MatchdayContext';
 import { OnboardingProvider } from './components/onboarding/OnboardingContext';
@@ -110,7 +110,7 @@ function DashboardShell() {
   }, [isMobileAuthFlow, currentUser]);
 
   const location = useLocation();
-  const isPublicRoute = ['/', '/calculator', '/features', '/rules', '/guide'].includes(location.pathname);
+  const isPublicRoute = ['/', '/calculator', '/features', '/rules', '/guide', '/privacy'].includes(location.pathname);
 
   useEffect(() => {
     const handleBeforePrint = () => {
@@ -658,14 +658,14 @@ function DashboardShell() {
               <Palette className="w-3.5 h-3.5 text-indigo-400" />
               <span>Design System & Kits</span>
             </button>
-            <button
-              onClick={() => setPrivacyOpen(true)}
+            <Link
+              to="/privacy"
               className="hover:text-emerald-400 transition cursor-pointer flex items-center gap-1 font-semibold"
               title="View youth football GDPR compliance rules and privacy policy"
             >
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Privacy & GDPR</span>
-            </button>
+              <span>Privacy &amp; GDPR</span>
+            </Link>
           </div>
         </div>
       </footer>

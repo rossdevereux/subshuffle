@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Google Play Store App Bundle (`.aab`) & Automated Release Artifacts**:
+  - Updated [`.github/workflows/mobile-eas.yml`](.github/workflows/mobile-eas.yml) to compile signed Android App Bundles (`subshuffle-v<version>.aab`) alongside release `.apk` binaries and attach both to GitHub Releases.
+  - Added auto-incrementing `versionCode` for Android builds in CI based on build run sequence.
+- **Dedicated Public Privacy Policy Page (`/privacy`)**:
+  - Added standalone [`PrivacyPolicyPage.tsx`](client/src/pages/PrivacyPolicyPage.tsx) compliant with Google Play Families & Child Safety Policies and UK GDPR.
+  - Linked directly in [`RootLayout.tsx`](client/src/RootLayout.tsx) footer and registered public route `/privacy` in [`router.tsx`](client/src/router.tsx).
+
 ## [1.12.3] - 2026-11-10
 
 ### Added

@@ -26,6 +26,7 @@ const LazyCalculatorPage = React.lazy(() => import('./pages/CalculatorPage').the
 const LazyFeaturesPage = React.lazy(() => import('./pages/FeaturesPage').then((m) => ({ default: m.FeaturesPage })));
 const LazyRulesPage = React.lazy(() => import('./pages/RulesPage').then((m) => ({ default: m.RulesPage })));
 const LazyGuidePage = React.lazy(() => import('./pages/GuidePage').then((m) => ({ default: m.GuidePage })));
+const LazyPrivacyPage = React.lazy(() => import('./pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })));
 
 const withSuspense = (Component: React.ComponentType) => () => (
   <Suspense fallback={<PageLoader />}>
@@ -115,6 +116,12 @@ const teamsRoute = createRoute({
   component: withSuspense(LazyTeamsPage),
 });
 
+const privacyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/privacy',
+  component: withSuspense(LazyPrivacyPage),
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   calculatorRoute,
@@ -129,6 +136,7 @@ const routeTree = rootRoute.addChildren([
   teamDashboardRoute,
   dashboardAliasRoute,
   teamsRoute,
+  privacyRoute,
 ]);
 
 export const router = createRouter({ routeTree });
