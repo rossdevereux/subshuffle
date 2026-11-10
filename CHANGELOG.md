@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.5] - 2026-11-10
+
 ### Added
 - **Self-Service Account & Data Erasure Page (`/delete-account`)**:
   - Implemented public and in-app self-service account deletion page [`DeleteAccountPage.tsx`](client/src/pages/DeleteAccountPage.tsx) compliant with GDPR Right to Erasure and Google Play Account Deletion Policy.

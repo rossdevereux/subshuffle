@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.12.5] - 2026-11-10
+
 ### Added
 - **Account & Data Deletion (GDPR & Google Play Compliance)**:
   - Added a dedicated, self-service **Delete Account & Personal Data** page at `https://subshuffle.com/delete-account` and in **Settings ⚙️** -> **Billing & Plan**.
