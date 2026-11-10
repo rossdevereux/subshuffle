@@ -44,6 +44,7 @@ export default function PitchAndBenchScreen() {
 
   // Modals state
   const [subSchedulerOpen, setSubSchedulerOpen] = useState(false);
+  const [customSubModalOpen, setCustomSubModalOpen] = useState(false);
   const [squadModalOpen, setSquadModalOpen] = useState(false);
   const [departureModalOpen, setDepartureModalOpen] = useState(false);
 
@@ -132,6 +133,12 @@ export default function PitchAndBenchScreen() {
           </Text>
         </Pressable>
         <Pressable
+          style={styles.customSubActionBtn}
+          onPress={() => setCustomSubModalOpen(true)}
+        >
+          <Text style={styles.customSubActionText}>➕ Custom Sub</Text>
+        </Pressable>
+        <Pressable
           style={styles.liveLaunchBtn}
           onPress={() => router.push('/live-match')}
         >
@@ -201,42 +208,6 @@ export default function PitchAndBenchScreen() {
         ))}
       </View>
 
-      {/* Selected Player Quick Toolbar (Swap / Lock Position / Captain) */}
-      {selectedSwapSource && selectedPlayerObj && (
-        <View style={styles.selectedToolbar}>
-          <Text style={styles.selectedToolbarTitle}>
-            Selected: {selectedPlayerObj.name} — Tap another player to swap, or:
-          </Text>
-          <View style={styles.selectedToolbarBtns}>
-            <Pressable
-              style={styles.toolbarBtn}
-              onPress={() =>
-                toggleFixedPlayerPosition(
-                  selectedSwapSource.playerId,
-                  selectedSwapSource.position
-                )
-              }
-            >
-              <Text style={styles.toolbarBtnText}>
-                {fixedMap[selectedSwapSource.playerId]
-                  ? `🔓 Unlock (${fixedMap[selectedSwapSource.playerId]})`
-                  : `🔒 Lock Position (${selectedSwapSource.position || 'GK'})`}
-              </Text>
-            </Pressable>
-            <Pressable
-              style={styles.toolbarBtn}
-              onPress={() => setMatchCaptain(selectedSwapSource.playerId)}
-            >
-              <Text style={styles.toolbarBtnText}>
-                {activeFixture.captainId === selectedSwapSource.playerId
-                  ? '© Clear Captain'
-                  : '© Make Captain'}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
-
       {/* 2D SVG Tactical Pitch */}
       <View style={[styles.pitchWrapper, sunlightMode && styles.pitchWrapperSunlight]}>
         <Svg viewBox="0 0 100 130" style={styles.pitchSvg}>
@@ -263,6 +234,50 @@ export default function PitchAndBenchScreen() {
             strokeWidth="0.9"
           />
         </Svg>
+
+        {/* Floating Non-Layout Shift Selected Player Toolbar */}
+        {selectedSwapSource && selectedPlayerObj && (
+          <View style={styles.floatingSelectedToolbar}>
+            <View style={styles.floatingToolbarHeader}>
+              <Text style={styles.selectedToolbarTitle} numberOfLines={1}>
+                ⚡ {selectedPlayerObj.name} selected: tap another player to swap
+              </Text>
+              <Pressable
+                onPress={() => handleTapPlayerNode({ type: selectedSwapSource.type, playerId: selectedSwapSource.playerId })}
+                style={styles.floatingCloseBtn}
+              >
+                <Text style={styles.floatingCloseText}>✕</Text>
+              </Pressable>
+            </View>
+            <View style={styles.selectedToolbarBtns}>
+              <Pressable
+                style={styles.toolbarBtn}
+                onPress={() =>
+                  toggleFixedPlayerPosition(
+                    selectedSwapSource.playerId,
+                    selectedSwapSource.position
+                  )
+                }
+              >
+                <Text style={styles.toolbarBtnText}>
+                  {fixedMap[selectedSwapSource.playerId]
+                    ? `🔓 Unlock (${fixedMap[selectedSwapSource.playerId]})`
+                    : `🔒 Lock (${selectedSwapSource.position || 'GK'})`}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={styles.toolbarBtn}
+                onPress={() => setMatchCaptain(selectedSwapSource.playerId)}
+              >
+                <Text style={styles.toolbarBtnText}>
+                  {activeFixture.captainId === selectedSwapSource.playerId
+                    ? '© Clear Captain'
+                    : '© Make Captain'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {(() => {
           const formationPositions = activeFormation.positions || [];
@@ -607,6 +622,111 @@ export default function PitchAndBenchScreen() {
         </View>
       </Modal>
 
+      {/* MODAL: Direct Custom Substitution Builder */}
+      <Modal visible={customSubModalOpen} transparent animationType="slide">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>➕ Create Custom Substitution</Text>
+            <Text style={styles.smallHint}>
+              Schedule a specific player swap for Period {activePeriod} at an exact minute mark:
+            </Text>
+
+            <Text style={[styles.sectionLabel, { marginTop: 12 }]}>Minute in Period</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Minute (e.g. 10)"
+              placeholderTextColor="#64748b"
+              keyboardType="numeric"
+              value={customSubMinute}
+              onChangeText={setCustomSubMinute}
+            />
+
+            <Text style={styles.smallHint}>Select Player Coming OFF (Currently on pitch):</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 6 }}>
+              {(currentLineup?.onPitch || []).map((op) => {
+                const p = playerMap.get(op.playerId);
+                const isSelected = customOffId === op.playerId;
+                return (
+                  <Pressable
+                    key={op.playerId}
+                    style={[
+                      styles.miniPlayerChip,
+                      isSelected && styles.miniPlayerChipOff,
+                    ]}
+                    onPress={() => setCustomOffId(op.playerId)}
+                  >
+                    <Text style={styles.miniPlayerChipText}>
+                      🔴 #{p?.squadNumber ?? '-'} {p?.name || op.playerId} ({op.position})
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <Text style={styles.smallHint}>Select Player Coming ON (Substitutes bench):</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 6 }}>
+              {(currentLineup?.bench || []).map((bid) => {
+                const p = playerMap.get(bid);
+                const isSelected = customOnId === bid;
+                return (
+                  <Pressable
+                    key={bid}
+                    style={[
+                      styles.miniPlayerChip,
+                      isSelected && styles.miniPlayerChipOn,
+                    ]}
+                    onPress={() => setCustomOnId(bid)}
+                  >
+                    <Text style={styles.miniPlayerChipText}>
+                      🟢 #{p?.squadNumber ?? '-'} {p?.name || bid}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <Pressable
+              style={[
+                styles.applyPlanBtn,
+                (!customOffId || !customOnId) && { opacity: 0.5 },
+              ]}
+              disabled={!customOffId || !customOnId}
+              onPress={async () => {
+                if (!customOffId || !customOnId) return;
+                const min = parseInt(customSubMinute, 10) || 10;
+                const offSlot = currentLineup?.onPitch.find(
+                  (op) => op.playerId === customOffId
+                );
+                const periodDur =
+                  activeFixture.periodDurationMinutes ||
+                  activeTeam.settings.periodDurationMinutes ||
+                  25;
+                await addCustomScheduledSub({
+                  period: activePeriod,
+                  targetMinute: min,
+                  matchMinute: (activePeriod - 1) * periodDur + min,
+                  offPlayerId: customOffId,
+                  onPlayerId: customOnId,
+                  position: offSlot?.position || 'CM',
+                  executed: false,
+                });
+                setCustomOffId('');
+                setCustomOnId('');
+                setCustomSubModalOpen(false);
+              }}
+            >
+              <Text style={styles.applyPlanBtnText}>
+                ✅ Add to Match Schedule ({customSubMinute}&apos;)
+              </Text>
+            </Pressable>
+
+            <Pressable style={styles.modalCloseBtn} onPress={() => setCustomSubModalOpen(false)}>
+              <Text style={styles.modalCloseText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
       {/* MODAL 2: Matchday Squad Selector */}
       <Modal visible={squadModalOpen} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
@@ -757,7 +877,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   secondaryActionBtn: {
-    flex: 1.2,
+    flex: 1.1,
     backgroundColor: '#1e293b',
     paddingVertical: 11,
     borderRadius: 10,
@@ -768,6 +888,18 @@ const styles = StyleSheet.create({
   secondaryActionText: {
     color: '#e2e8f0',
     fontWeight: '800',
+    fontSize: 12,
+  },
+  customSubActionBtn: {
+    flex: 1.1,
+    backgroundColor: '#3b82f6',
+    paddingVertical: 11,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  customSubActionText: {
+    color: '#ffffff',
+    fontWeight: '900',
     fontSize: 12,
   },
   liveLaunchBtn: {
@@ -868,6 +1000,42 @@ const styles = StyleSheet.create({
   selectedToolbarBtns: {
     flexDirection: 'row',
     gap: 8,
+  },
+  floatingSelectedToolbar: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: 8,
+    zIndex: 99,
+    elevation: 10,
+    backgroundColor: 'rgba(69, 26, 3, 0.95)',
+    borderWidth: 1.5,
+    borderColor: '#f59e0b',
+    borderRadius: 12,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+  },
+  floatingToolbarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  floatingCloseBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#78350f',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  floatingCloseText: {
+    color: '#fde68a',
+    fontSize: 12,
+    fontWeight: '900',
   },
   toolbarBtn: {
     backgroundColor: '#0f172a',

@@ -269,6 +269,12 @@ interface MobileMatchdayContextType {
   togglePeriodTimer: () => Promise<void>;
   resetPeriodTimer: () => Promise<void>;
   executePlannedSub: (sub: PlannedInGameSub) => Promise<void>;
+  executeImmediateCustomSub: (params: {
+    offPlayerId: string;
+    onPlayerId: string;
+    period?: number;
+    minute?: number;
+  }) => Promise<void>;
   updateFixtureScore: (
     homeScore: number,
     awayScore: number,
@@ -1717,6 +1723,70 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
     [activeFixture.matchSquad, updateMatchSquad, playerMap, flashSync]
   );
 
+  const executeImmediateCustomSub = useCallback(
+    async ({
+      offPlayerId,
+      onPlayerId,
+      period,
+      minute,
+    }: {
+      offPlayerId: string;
+      onPlayerId: string;
+      period?: number;
+      minute?: number;
+    }) => {
+      await triggerTouchlineHaptic('swap');
+      if (!activeFixture.matchSquad) return;
+      const targetPeriod = period ?? activePeriod;
+      const periodDur =
+        activeFixture.periodDurationMinutes || activeTeam.settings.periodDurationMinutes || 25;
+      const calcMinute = minute ?? Math.max(1, Math.floor(elapsedSeconds / 60));
+      const matchMin = (targetPeriod - 1) * periodDur + calcMinute;
+
+      let subPos = 'CM';
+      const updatedLineups = activeFixture.matchSquad.lineupsByPeriod.map((lp) => {
+        if (lp.period !== targetPeriod) return lp;
+        const onPitch = lp.onPitch.map((op) => {
+          if (op.playerId === offPlayerId) {
+            subPos = op.position;
+            return { ...op, playerId: onPlayerId };
+          }
+          return op;
+        });
+        const bench = lp.bench.map((bid) => (bid === onPlayerId ? offPlayerId : bid));
+        return { ...lp, onPitch, bench };
+      });
+
+      const newExecutedSub: PlannedInGameSub = {
+        id: `sub_custom_now_${Date.now()}`,
+        period: targetPeriod,
+        targetMinute: calcMinute,
+        matchMinute: matchMin,
+        offPlayerId,
+        onPlayerId,
+        playerOutId: offPlayerId,
+        playerInId: onPlayerId,
+        position: subPos,
+        executed: true,
+      };
+
+      const updatedSubs = [...(activeFixture.matchSquad.plannedInGameSubs || []), newExecutedSub];
+
+      await updateMatchSquad({
+        ...activeFixture.matchSquad,
+        lineupsByPeriod: updatedLineups,
+        plannedInGameSubs: updatedSubs,
+      });
+
+      flashSync(
+        `Substituted: ${playerMap.get(onPlayerId)?.name || 'ON'} ⇄ ${
+          playerMap.get(offPlayerId)?.name || 'OFF'
+        } (${subPos})`
+      );
+    },
+    [activeFixture, activePeriod, activeTeam, elapsedSeconds, updateMatchSquad, playerMap, flashSync]
+  );
+
   const updateFixtureScore = useCallback(
     async (
       homeScore: number,
@@ -1979,6 +2049,7 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
         togglePeriodTimer,
         resetPeriodTimer,
         executePlannedSub,
+        executeImmediateCustomSub,
         updateFixtureScore,
         savePostMatchRecording,
 

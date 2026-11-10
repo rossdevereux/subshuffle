@@ -32,12 +32,16 @@ export default function LiveMatchScreen() {
     togglePeriodTimer,
     resetPeriodTimer,
     executePlannedSub,
+    executeImmediateCustomSub,
     updateFixtureScore,
     setPlayerOfTheMatch,
     savePostMatchRecording,
   } = useMobileMatchday();
 
   const [goalScorerModalOpen, setGoalScorerModalOpen] = useState(false);
+  const [customLiveSubModalOpen, setCustomLiveSubModalOpen] = useState(false);
+  const [liveSubOffId, setLiveSubOffId] = useState('');
+  const [liveSubOnId, setLiveSubOnId] = useState('');
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [selectedPotmIds, setSelectedPotmIds] = useState<string[]>(() =>
     getFixturePotmIds(activeFixture)
@@ -193,9 +197,21 @@ export default function LiveMatchScreen() {
 
       {/* Scheduled Rolling Substitutions */}
       <View style={styles.subsSection}>
-        <Text style={styles.sectionTitle}>
-          Scheduled Substitutions (Period {activePeriod})
-        </Text>
+        <View style={styles.subsSectionHeader}>
+          <Text style={styles.sectionTitle}>
+            Substitutions (Period {activePeriod})
+          </Text>
+          <Pressable
+            style={styles.addLiveSubBtn}
+            onPress={() => {
+              setLiveSubOffId('');
+              setLiveSubOnId('');
+              setCustomLiveSubModalOpen(true);
+            }}
+          >
+            <Text style={styles.addLiveSubBtnText}>⚡ Sub Now (Custom)</Text>
+          </Pressable>
+        </View>
 
         {plannedSubs.map((sub) => {
           const offPlayer = playerMap.get(sub.offPlayerId);
@@ -254,6 +270,107 @@ export default function LiveMatchScreen() {
           🏁 Complete Match & Award Player(s) of the Match
         </Text>
       </Pressable>
+
+      {/* Live Custom Substitution Modal */}
+      <Modal visible={customLiveSubModalOpen} transparent animationType="slide">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>⚡ Make Live Substitution Now</Text>
+            <Text style={styles.subHint}>
+              Select who comes OFF the pitch and who comes ON from the bench at minute {Math.max(1, Math.floor(elapsedSeconds / 60))}&apos;:
+            </Text>
+
+            <Text style={[styles.sectionTitle, { fontSize: 13, marginTop: 10, marginBottom: 4 }]}>
+              Player Coming OFF (Pitch):
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 4 }}>
+              {(() => {
+                const currentLineup = (activeFixture.matchSquad?.lineupsByPeriod || []).find(
+                  (lp) => lp.period === activePeriod
+                );
+                return (currentLineup?.onPitch || []).map((op) => {
+                  const p = playerMap.get(op.playerId);
+                  const isSelected = liveSubOffId === op.playerId;
+                  return (
+                    <Pressable
+                      key={op.playerId}
+                      style={[
+                        styles.playerChip,
+                        isSelected && { backgroundColor: '#ef4444', borderColor: '#b91c1c' },
+                      ]}
+                      onPress={() => setLiveSubOffId(op.playerId)}
+                    >
+                      <Text style={[styles.playerChipText, isSelected && { color: '#ffffff' }]}>
+                        🔴 #{p?.squadNumber ?? '-'} {p?.name || op.playerId} ({op.position})
+                      </Text>
+                    </Pressable>
+                  );
+                });
+              })()}
+            </ScrollView>
+
+            <Text style={[styles.sectionTitle, { fontSize: 13, marginTop: 10, marginBottom: 4 }]}>
+              Player Coming ON (Bench):
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 4 }}>
+              {(() => {
+                const currentLineup = (activeFixture.matchSquad?.lineupsByPeriod || []).find(
+                  (lp) => lp.period === activePeriod
+                );
+                return (currentLineup?.bench || []).map((bid) => {
+                  const p = playerMap.get(bid);
+                  const isSelected = liveSubOnId === bid;
+                  return (
+                    <Pressable
+                      key={bid}
+                      style={[
+                        styles.playerChip,
+                        isSelected && { backgroundColor: '#10b981', borderColor: '#059669' },
+                      ]}
+                      onPress={() => setLiveSubOnId(bid)}
+                    >
+                      <Text style={[styles.playerChipText, isSelected && { color: '#ffffff' }]}>
+                        🟢 #{p?.squadNumber ?? '-'} {p?.name || bid}
+                      </Text>
+                    </Pressable>
+                  );
+                });
+              })()}
+            </ScrollView>
+
+            <Pressable
+              disabled={!liveSubOffId || !liveSubOnId}
+              style={[
+                styles.mainTimerBtn,
+                { marginTop: 16, backgroundColor: !liveSubOffId || !liveSubOnId ? '#334155' : '#10b981' },
+              ]}
+              onPress={async () => {
+                if (!liveSubOffId || !liveSubOnId) return;
+                await executeImmediateCustomSub({
+                  offPlayerId: liveSubOffId,
+                  onPlayerId: liveSubOnId,
+                  period: activePeriod,
+                  minute: Math.max(1, Math.floor(elapsedSeconds / 60)),
+                });
+                setLiveSubOffId('');
+                setLiveSubOnId('');
+                setCustomLiveSubModalOpen(false);
+              }}
+            >
+              <Text style={styles.mainTimerBtnText}>
+                ⚡ Execute Substitution Immediately
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.cancelBtn}
+              onPress={() => setCustomLiveSubModalOpen(false)}
+            >
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* Goal Scorer Attribution Modal */}
       <Modal visible={goalScorerModalOpen} transparent animationType="fade">
@@ -529,6 +646,23 @@ const styles = StyleSheet.create({
   },
   subsSection: {
     marginTop: 4,
+  },
+  subsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  addLiveSubBtn: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  addLiveSubBtnText: {
+    color: '#ffffff',
+    fontWeight: '900',
+    fontSize: 12,
   },
   sectionTitle: {
     color: '#f8fafc',

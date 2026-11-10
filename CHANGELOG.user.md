@@ -3,6 +3,10 @@
 ## [Unreleased]
 
 ### Added
+- **Custom Substitutions & Smoother Pitch Selection** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
+  - Added a dedicated **➕ Custom Sub** button on the Pitch view so you can plan custom minute-by-minute substitutions whenever you don't want to use the auto-interval scheduler.
+  - Added a **⚡ Sub Now (Custom)** button directly inside the Live Match screen to make instant in-game substitutions on the fly.
+  - Selecting a player on the pitch now displays a smooth floating card directly over the top of the pitch rather than pushing the pitch down and shifting the screen.
 - **Native 1-Tap Google Sign-In on Android** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
   - You can now tap **Continue with Google** right inside the app to sign in using the Google account already on your Android phone. No browser window, no redirects, and no passwords required.
   - All existing teams, squads, and match schedules set up on the web remain fully synchronized.

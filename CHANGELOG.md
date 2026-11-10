@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Mobile Custom Substitution Builder & Pitch View Stability** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
+  - Added dedicated **➕ Custom Sub** action button and builder dialog on the Pitch tab, allowing coaches to configure and schedule exact custom substitutions for any minute without relying solely on auto-generated intervals.
+  - Added real-time **⚡ Sub Now (Custom)** dialog directly inside the Live Match touchline console to perform immediate live in-game tactical substitutions between pitch and bench players.
+  - Converted the player selection bar on the tactical pitch into a floating non-layout-shifting overlay (`floatingSelectedToolbar`), eliminating screen jumps and visual movement when selecting a player node.
 - **Android Native Google Account Sign-In (Credential Manager)** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
   - Added native Google Sign-In via [`@react-native-google-signin/google-signin`](mobile/src/services/nativeGoogleSignIn.ts) using Android Credential Manager so coaches can sign in with one tap directly from their device's Google account picker without leaving the app or opening a browser.
   - Implemented `mobileSignInWithGoogleIdToken` in [`mobileAuthService.ts`](mobile/src/services/mobileAuthService.ts) for secure token exchange with Firebase Identity Toolkit (`accounts:signInWithIdp`), preserving seamless sync with existing web accounts, teams, and fixtures.
