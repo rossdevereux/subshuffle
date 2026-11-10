@@ -1952,7 +1952,7 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
           diagnostics: {
             activeTeamId: activeTeam.id,
             activeFixtureId: activeFixture.id,
-            appVersion: '1.12.3-mobile',
+            appVersion: '1.12.4-mobile',
             platform: 'react-native-expo',
           },
         }),

@@ -2,7 +2,7 @@
   "expo": {
     "name": "SubShuffle",
     "slug": "subshuffle",
-    "version": "1.12.3",
+    "version": "1.12.4",
     "runtimeVersion": {
       "policy": "appVersion"
     },

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.12.4] - 2026-11-10
+
 ### Added
 - **Public Terms & Conditions Page**:
   - Added a dedicated, public **Terms & Conditions** page at `https://subshuffle.com/terms` defining grassroots coach safety boundaries, club sharing rules, and billing details.

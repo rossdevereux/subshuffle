@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.4] - 2026-11-10
+
 ### Added
 - **Dedicated Public Terms & Conditions Page (`/terms`)**:
   - Added standalone [`TermsPage.tsx`](client/src/pages/TermsPage.tsx) accessible at `https://subshuffle.com/terms` (and `https://subshuffle-beta.web.app/terms`).
