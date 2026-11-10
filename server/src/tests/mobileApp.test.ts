@@ -2,6 +2,7 @@ import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import {
   BUILT_IN_FORMATIONS,
@@ -503,6 +504,97 @@ describe('Android Mobile App Stability, Auth, Data Normalizer & Parity Suite', (
       const text = formatWhatsAppMatchSummary(team, fixture, players);
       assert.ok(text.includes('Rovers U10 vs Albion'));
       assert.ok(text.includes('Leo, Max'));
+    });
+  });
+
+  describe('4. Android Release Signing & Native Google Sign-In Invariants', () => {
+    it('configures withReleaseSigning plugin in mobile/app.json and injects release signing config into build.gradle', () => {
+      const appJsonPath = path.join(mobileDir, 'app.json');
+      const appJson = JSON.parse(fs.readFileSync(appJsonPath, 'utf8'));
+      assert.ok(
+        appJson.expo.plugins.some(
+          (p: any) => p === './plugins/withReleaseSigning' || (Array.isArray(p) && p[0] === './plugins/withReleaseSigning')
+        ),
+        'mobile/app.json must include ./plugins/withReleaseSigning plugin'
+      );
+
+      const requireNode = createRequire(import.meta.url);
+      const { applyReleaseSigning } = requireNode(path.join(mobileDir, 'plugins', 'withReleaseSigning.js'));
+
+      const mockGradle = `
+android {
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+        }
+    }
+}
+      `;
+
+      const patched = applyReleaseSigning(mockGradle);
+      assert.ok(patched.includes('// @subshuffle/release-signing'), 'Must inject marker');
+      assert.ok(patched.includes("storeFile file(System.getenv('ANDROID_KEYSTORE_PATH'))"), 'Must read keystore from env');
+      assert.ok(
+        patched.includes("signingConfig System.getenv('ANDROID_KEYSTORE_PATH') ? signingConfigs.release : signingConfigs.debug"),
+        'Must conditionally use release signingConfig when ANDROID_KEYSTORE_PATH is present'
+      );
+    });
+
+    it('exports public GOOGLE_WEB_CLIENT_ID and provides native Google Sign-In wrappers', () => {
+      const nativeServicePath = path.join(mobileDir, 'src', 'services', 'nativeGoogleSignIn.ts');
+      assert.ok(fs.existsSync(nativeServicePath), 'nativeGoogleSignIn.ts must exist');
+      const src = fs.readFileSync(nativeServicePath, 'utf8');
+
+      assert.ok(src.includes('GOOGLE_WEB_CLIENT_ID'), 'Must export GOOGLE_WEB_CLIENT_ID');
+      assert.ok(
+        src.includes('942396117037-av6m9vth2g070m4fa29nhli0eflgnfrl.apps.googleusercontent.com'),
+        'Must contain the project web client id'
+      );
+      assert.ok(src.includes('signInWithNativeGoogle'), 'Must export signInWithNativeGoogle');
+      assert.ok(src.includes('isNativeGoogleSignInAvailable'), 'Must export isNativeGoogleSignInAvailable');
+      assert.ok(src.includes('signOutNativeGoogle'), 'Must export signOutNativeGoogle');
+    });
+
+    it('implements mobileSignInWithGoogleIdToken in mobileAuthService for Firebase IDP token exchange', () => {
+      const authServicePath = path.join(mobileDir, 'src', 'services', 'mobileAuthService.ts');
+      const src = fs.readFileSync(authServicePath, 'utf8');
+
+      assert.ok(src.includes('mobileSignInWithGoogleIdToken'), 'Must export mobileSignInWithGoogleIdToken');
+      assert.ok(src.includes('accounts:signInWithIdp'), 'Must call Firebase signInWithIdp endpoint');
+      assert.ok(src.includes('providerId=google.com'), 'Must pass google.com providerId');
+    });
+
+    it('wires native Google Sign-In into MobileMatchdayContext and MobileAuthScreen', () => {
+      const contextSrc = fs.readFileSync(
+        path.join(mobileDir, 'src', 'context', 'MobileMatchdayContext.tsx'),
+        'utf8'
+      );
+      assert.ok(contextSrc.includes('signInWithGoogleNative'), 'Context must expose signInWithGoogleNative');
+      assert.ok(contextSrc.includes('nativeGoogleSignInAvailable'), 'Context must expose nativeGoogleSignInAvailable');
+      assert.ok(contextSrc.includes('signOutNativeGoogle'), 'Context must invoke signOutNativeGoogle on sign-out');
+
+      const screenSrc = fs.readFileSync(
+        path.join(mobileDir, 'src', 'components', 'MobileAuthScreen.tsx'),
+        'utf8'
+      );
+      assert.ok(screenSrc.includes('Continue with Google'), 'MobileAuthScreen must render Continue with Google');
+      assert.ok(screenSrc.includes('nativeGoogleSignInAvailable'), 'MobileAuthScreen must check nativeGoogleSignInAvailable');
+    });
+
+    it('passes release signing secrets in .github/workflows/mobile-eas.yml and decodes keystore', () => {
+      const workflowSrc = fs.readFileSync(
+        path.join(repoRoot, '.github', 'workflows', 'mobile-eas.yml'),
+        'utf8'
+      );
+      assert.ok(workflowSrc.includes('ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}'), 'Must pass ANDROID_KEYSTORE_BASE64');
+      assert.ok(workflowSrc.includes('ANDROID_KEYSTORE_PATH'), 'Must set ANDROID_KEYSTORE_PATH env');
+      assert.ok(workflowSrc.includes('apksigner'), 'Must verify APK cert via apksigner');
     });
   });
 });

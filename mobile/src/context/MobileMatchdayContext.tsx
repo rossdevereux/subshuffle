@@ -35,7 +35,13 @@ import {
   ensureFreshIdToken,
   openGoogleBrowserSignIn,
   parseAndSaveAuthDeepLink,
+  mobileSignInWithGoogleIdToken,
 } from '../services/mobileAuthService';
+import {
+  signInWithNativeGoogle,
+  signOutNativeGoogle,
+  isNativeGoogleSignInAvailable,
+} from '../services/nativeGoogleSignIn';
 import {
   normalizeTeam,
   normalizePlayer,
@@ -180,6 +186,9 @@ interface MobileMatchdayContextType {
   registerWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   signInWithGoogleBrowser: () => Promise<void>;
+  /** Native Android Google account picker (Credential Manager). */
+  nativeGoogleSignInAvailable: boolean;
+  signInWithGoogleNative: () => Promise<void>;
   completeDeepLinkSignIn: (params: {
     idToken: string;
     refreshToken?: string;
@@ -719,6 +728,31 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
     await openGoogleBrowserSignIn(API_BASE_URL);
   }, []);
 
+  const nativeGoogleSignInAvailable = useMemo(() => isNativeGoogleSignInAvailable(), []);
+
+  const signInWithGoogleNative = useCallback(async () => {
+    setErrorMessage(null);
+    const result = await signInWithNativeGoogle();
+    if (result.status === 'cancelled') return;
+    if (result.status === 'unavailable') {
+      setErrorMessage(result.reason);
+      throw new Error(result.reason);
+    }
+    setLoading(true);
+    try {
+      const user = await mobileSignInWithGoogleIdToken(API_BASE_URL, result.idToken);
+      setCurrentUser(user);
+      setIsDemoMode(false);
+      flashSync(`Welcome, ${user.displayName || user.email}!`);
+      await refreshAllData(user);
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Google sign-in failed');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshAllData, flashSync]);
+
   const completeDeepLinkSignIn = useCallback(
     async (params: {
       idToken: string;
@@ -757,6 +791,7 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
 
   const signOut = useCallback(async () => {
     await savePersistedPrefs({ user: null, activeTeamId: undefined, activeFixtureId: undefined });
+    await signOutNativeGoogle();
     setCurrentUser(null);
     setIsDemoMode(false);
     setTeams([FALLBACK_TEAM]);
@@ -1883,6 +1918,8 @@ export const MobileMatchdayProvider: React.FC<{ children: React.ReactNode }> = (
         registerWithEmail,
         sendPasswordReset,
         signInWithGoogleBrowser,
+        nativeGoogleSignInAvailable,
+        signInWithGoogleNative,
         completeDeepLinkSignIn,
         enterDemoMode,
         signOut,

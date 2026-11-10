@@ -18,6 +18,8 @@ export function MobileAuthScreen() {
     registerWithEmail,
     sendPasswordReset,
     signInWithGoogleBrowser,
+    nativeGoogleSignInAvailable,
+    signInWithGoogleNative,
     enterDemoMode,
     loading,
     errorMessage,
@@ -77,9 +79,38 @@ export function MobileAuthScreen() {
         </View>
 
         <View style={styles.card}>
-          {/* 1-Tap Google / Web Browser OAuth Handoff */}
+          {/* Native Android Google account picker (preferred) */}
+          {nativeGoogleSignInAvailable && (
+            <>
+              <Pressable
+                style={styles.nativeGoogleBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Continue with Google"
+                disabled={loading}
+                onPress={async () => {
+                  clearMessages();
+                  setLocalError(null);
+                  try {
+                    await signInWithGoogleNative();
+                  } catch (err: any) {
+                    setLocalError(err?.message || 'Google sign-in failed');
+                  }
+                }}
+              >
+                <Text style={styles.nativeGoogleG}>G</Text>
+                <Text style={styles.nativeGoogleBtnText}>Continue with Google</Text>
+              </Pressable>
+              <Text style={styles.googleHint}>
+                Uses the Google account already on this phone — no password needed.
+              </Text>
+            </>
+          )}
+
+          {/* Google / Web Browser OAuth Handoff (fallback) */}
           <Pressable style={styles.googleBtn} onPress={signInWithGoogleBrowser}>
-            <Text style={styles.googleBtnText}>🌐 Sign In with Google (Browser Handoff)</Text>
+            <Text style={styles.googleBtnText}>
+              🌐 {nativeGoogleSignInAvailable ? 'Use Browser Sign-In Instead' : 'Sign In with Google (Browser Handoff)'}
+            </Text>
           </Pressable>
           <Text style={styles.googleHint}>
             Opens {apiBaseUrl.replace('https://', '')} in your browser and returns straight to the app
@@ -251,12 +282,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#1e293b',
   },
+  nativeGoogleBtn: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    minHeight: 50,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  nativeGoogleG: {
+    color: '#4285F4',
+    fontWeight: '900',
+    fontSize: 20,
+  },
+  nativeGoogleBtnText: {
+    color: '#1f1f1f',
+    fontWeight: '800',
+    fontSize: 15,
+  },
   googleBtn: {
     backgroundColor: '#f8fafc',
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: 'center',
+    marginTop: 12,
   },
   googleBtnText: {
     color: '#0f172a',

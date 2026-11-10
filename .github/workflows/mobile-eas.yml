@@ -141,12 +141,29 @@ jobs:
         env:
           EXPO_PUBLIC_API_URL: ${{ steps.meta.outputs.api_url }}
           EXPO_PUBLIC_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          # Decode the release signing key (read by plugins/withReleaseSigning.js via env vars).
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            KEYSTORE_PATH="$RUNNER_TEMP/subshuffle-release.jks"
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+            export ANDROID_KEYSTORE_PATH="$KEYSTORE_PATH"
+            echo "🔐 Signing APK with SubShuffle release key"
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 secret not set — APK will be debug-signed and native Google Sign-In will be rejected."
+          fi
           npx expo prebuild --platform android --no-install
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --build-cache --no-daemon
           cp app/build/outputs/apk/release/app-release.apk "../${{ steps.meta.outputs.apk_name }}"
+          # Print the signing certificate fingerprint for verification against Firebase.
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | tail -n 1)
+          "$APKSIGNER" verify --print-certs "../${{ steps.meta.outputs.apk_name }}" | grep -E "SHA-1|SHA-256" || true
+          rm -f "$RUNNER_TEMP/subshuffle-release.jks"
 
       - name: Upload APK to GitHub Actions Run Artifacts
         uses: actions/upload-artifact@v4

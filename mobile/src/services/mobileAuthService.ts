@@ -302,6 +302,46 @@ export async function openGoogleBrowserSignIn(apiBaseUrl: string): Promise<void>
 }
 
 /**
+ * Exchanges a Google ID token from the native Android account picker for a SubShuffle (Firebase)
+ * session via the Identity Toolkit `signInWithIdp` REST endpoint. Existing Google accounts
+ * created on the web app resolve to the same Firebase UID, so all teams & fixtures carry over.
+ */
+export async function mobileSignInWithGoogleIdToken(
+  apiBaseUrl: string,
+  googleIdToken: string
+): Promise<MobileAuthUser> {
+  const apiKey = await resolveFirebaseApiKey(apiBaseUrl);
+  const res = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        postBody: `id_token=${encodeURIComponent(googleIdToken)}&providerId=google.com`,
+        requestUri: 'http://localhost',
+        returnIdpCredential: true,
+        returnSecureToken: true,
+      }),
+    }
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data?.idToken) {
+    throw new Error(formatFirebaseRestError(data?.error?.message));
+  }
+
+  const user: MobileAuthUser = {
+    uid: String(data.localId || 'user'),
+    email: String(data.email || ''),
+    displayName: data.displayName ? String(data.displayName) : undefined,
+    idToken: String(data.idToken),
+    refreshToken: String(data.refreshToken || ''),
+    expiresAt: Date.now() + (Number(data.expiresIn) || 3600) * 1000 - 60_000,
+  };
+  await savePersistedPrefs({ user });
+  return user;
+}
+
+/**
  * Parses a deep link URL (`subshuffle://auth?idToken=...&refreshToken=...`) from the browser handoff.
  */
 export async function parseAndSaveAuthDeepLink(url: string): Promise<MobileAuthUser | null> {

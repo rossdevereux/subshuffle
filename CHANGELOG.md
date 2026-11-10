@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Android Native Google Account Sign-In (Credential Manager)** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
+  - Added native Google Sign-In via [`@react-native-google-signin/google-signin`](mobile/src/services/nativeGoogleSignIn.ts) using Android Credential Manager so coaches can sign in with one tap directly from their device's Google account picker without leaving the app or opening a browser.
+  - Implemented `mobileSignInWithGoogleIdToken` in [`mobileAuthService.ts`](mobile/src/services/mobileAuthService.ts) for secure token exchange with Firebase Identity Toolkit (`accounts:signInWithIdp`), preserving seamless sync with existing web accounts, teams, and fixtures.
+  - Kept the browser OAuth handoff button as an immediate touchline fallback if Google Play Services is unavailable on the device.
+- **Production Android Release Keystore & CI Signing Pipeline**:
+  - Generated dedicated 4096-bit RSA release signing keystore with SHA-1 / SHA-256 fingerprints registered on Firebase Android app `com.subshuffle.app` (`942396117037`).
+  - Added Expo config plugin [`withReleaseSigning.js`](mobile/plugins/withReleaseSigning.js) and configured GitHub Actions secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`) in [`.github/workflows/mobile-eas.yml`](.github/workflows/mobile-eas.yml) to sign APK release artifacts securely.
+
 ## [1.12.2] - 2026-11-08
 
 ### Fixed

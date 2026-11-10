@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- **Native 1-Tap Google Sign-In on Android** ([#41](https://github.com/rossdevereux/subshuffle/issues/41)):
+  - You can now tap **Continue with Google** right inside the app to sign in using the Google account already on your Android phone. No browser window, no redirects, and no passwords required.
+  - All existing teams, squads, and match schedules set up on the web remain fully synchronized.
+  - Release APKs are now signed with an official SubShuffle release certificate for Google Play security compliance.
+
 ## [1.12.2] - 2026-11-08
 
 ### Fixed

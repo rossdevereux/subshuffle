@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@react-native-google-signin/google-signin": "13.3.1",
     "@subshuffle/shared": "file:../packages/shared",
     "expo": "~52.0.0",
     "expo-asset": "~11.0.5",
